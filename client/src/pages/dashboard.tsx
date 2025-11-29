@@ -17,13 +17,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, TrendingUp, User, Calendar, FileText, Download } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertChildSchema, type Child, type AssessmentResult } from "@shared/schema";
+import { type Child, type AssessmentResult } from "@shared/schema";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { z } from "zod";
 
-const createChildSchema = insertChildSchema.extend({
+const createChildSchema = z.object({
   name: z.string().min(1, "Name is required"),
   age: z.number().min(5, "Age must be at least 5").max(16, "Age must be at most 16"),
+  profileColor: z.string().optional(),
 });
 
 export default function Dashboard() {
@@ -197,8 +198,14 @@ export default function Dashboard() {
                             type="number" 
                             min="5" 
                             max="16" 
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value))}
+                            value={field.value || ""}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value);
+                              field.onChange(isNaN(val) ? "" : val);
+                            }}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
                             data-testid="input-child-age"
                           />
                         </FormControl>
