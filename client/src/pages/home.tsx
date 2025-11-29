@@ -115,7 +115,7 @@ export default function Home() {
         {/* Welcome Section */}
         <div className="mb-12">
           <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-4" data-testid="text-welcome">
-            Welcome back, {user?.firstName || 'Parent'}! 👋
+            Welcome back, {(user as any)?.firstName || 'Parent'}! 👋
           </h1>
           <p className="text-xl text-muted-foreground">
             Ready to continue your child's development journey?

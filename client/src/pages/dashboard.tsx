@@ -213,7 +213,7 @@ export default function Dashboard() {
                       <FormItem>
                         <FormLabel>Profile Color</FormLabel>
                         <FormControl>
-                          <Input type="color" {...field} data-testid="input-child-color" />
+                          <Input type="color" {...field} value={field.value || "#4F46E5"} data-testid="input-child-color" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
