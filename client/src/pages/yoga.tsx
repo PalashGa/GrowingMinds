@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,11 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Flower, Play, Clock, Star, User, Heart, Target, Brain, Sparkles, Activity, BookOpen, Users, Zap, Eye, Scale, Lightbulb, MessageSquare, Calculator, HandHeart, Check, Info } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  Flower, Play, Clock, Star, User, Heart, Target, Brain, Sparkles, Activity, 
+  BookOpen, Users, Zap, Eye, Scale, Lightbulb, MessageSquare, Calculator, 
+  HandHeart, Check, Info, Pause, RotateCcw, Timer, Award, ChevronRight,
+  ArrowLeft, ArrowRight, Volume2, VolumeX, CheckCircle2
+} from "lucide-react";
 import type { YogaProgram, Child, YogaSession, YogaPose } from "@shared/schema";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
@@ -24,18 +31,22 @@ const toStringArray = (value: unknown): string[] => {
 };
 
 const developmentCategories = [
-  { key: "All", label: "All Poses", icon: Flower },
-  { key: "Openness", label: "Openness", icon: Sparkles },
-  { key: "Conscientiousness", label: "Conscientiousness", icon: Target },
-  { key: "Extraversion", label: "Extraversion", icon: Users },
-  { key: "Agreeableness", label: "Agreeableness", icon: HandHeart },
-  { key: "Emotional Stability", label: "Emotional Stability", icon: Heart },
-  { key: "Logical Reasoning", label: "Logical Reasoning", icon: Brain },
-  { key: "Problem-Solving", label: "Problem-Solving", icon: Lightbulb },
-  { key: "Verbal Comprehension", label: "Verbal Comprehension", icon: MessageSquare },
-  { key: "Mathematical Skills", label: "Mathematical Skills", icon: Calculator },
-  { key: "Working Memory", label: "Working Memory", icon: Activity },
+  { key: "All", label: "All Poses", icon: Flower, color: "from-gray-400 to-gray-600", bgColor: "bg-gradient-to-br from-gray-100 to-gray-200" },
+  { key: "Openness", label: "Openness", icon: Sparkles, color: "from-purple-400 to-purple-600", bgColor: "bg-gradient-to-br from-purple-100 to-purple-200" },
+  { key: "Conscientiousness", label: "Conscientiousness", icon: Target, color: "from-blue-400 to-blue-600", bgColor: "bg-gradient-to-br from-blue-100 to-blue-200" },
+  { key: "Extraversion", label: "Extraversion", icon: Users, color: "from-orange-400 to-orange-600", bgColor: "bg-gradient-to-br from-orange-100 to-orange-200" },
+  { key: "Agreeableness", label: "Agreeableness", icon: HandHeart, color: "from-pink-400 to-pink-600", bgColor: "bg-gradient-to-br from-pink-100 to-pink-200" },
+  { key: "Emotional Stability", label: "Emotional Stability", icon: Heart, color: "from-green-400 to-green-600", bgColor: "bg-gradient-to-br from-green-100 to-green-200" },
+  { key: "Logical Reasoning", label: "Logical Reasoning", icon: Brain, color: "from-indigo-400 to-indigo-600", bgColor: "bg-gradient-to-br from-indigo-100 to-indigo-200" },
+  { key: "Problem-Solving", label: "Problem-Solving", icon: Lightbulb, color: "from-yellow-400 to-yellow-600", bgColor: "bg-gradient-to-br from-yellow-100 to-yellow-200" },
+  { key: "Verbal Comprehension", label: "Verbal Comprehension", icon: MessageSquare, color: "from-teal-400 to-teal-600", bgColor: "bg-gradient-to-br from-teal-100 to-teal-200" },
+  { key: "Mathematical Skills", label: "Mathematical Skills", icon: Calculator, color: "from-cyan-400 to-cyan-600", bgColor: "bg-gradient-to-br from-cyan-100 to-cyan-200" },
+  { key: "Working Memory", label: "Working Memory", icon: Activity, color: "from-red-400 to-red-600", bgColor: "bg-gradient-to-br from-red-100 to-red-200" },
 ];
+
+const getCategoryData = (category: string) => {
+  return developmentCategories.find(c => c.key === category) || developmentCategories[0];
+};
 
 const getCategoryIcon = (category: string) => {
   const found = developmentCategories.find(c => c.key === category);
@@ -44,18 +55,34 @@ const getCategoryIcon = (category: string) => {
 
 const getCategoryColor = (category: string) => {
   const colors: Record<string, string> = {
-    "Openness": "bg-purple-100 text-purple-800 border-purple-200",
-    "Conscientiousness": "bg-blue-100 text-blue-800 border-blue-200",
-    "Extraversion": "bg-orange-100 text-orange-800 border-orange-200",
-    "Agreeableness": "bg-pink-100 text-pink-800 border-pink-200",
-    "Emotional Stability": "bg-green-100 text-green-800 border-green-200",
-    "Logical Reasoning": "bg-indigo-100 text-indigo-800 border-indigo-200",
-    "Problem-Solving": "bg-yellow-100 text-yellow-800 border-yellow-200",
-    "Verbal Comprehension": "bg-teal-100 text-teal-800 border-teal-200",
-    "Mathematical Skills": "bg-cyan-100 text-cyan-800 border-cyan-200",
-    "Working Memory": "bg-red-100 text-red-800 border-red-200",
+    "Openness": "bg-purple-100 text-purple-800 border-purple-300",
+    "Conscientiousness": "bg-blue-100 text-blue-800 border-blue-300",
+    "Extraversion": "bg-orange-100 text-orange-800 border-orange-300",
+    "Agreeableness": "bg-pink-100 text-pink-800 border-pink-300",
+    "Emotional Stability": "bg-green-100 text-green-800 border-green-300",
+    "Logical Reasoning": "bg-indigo-100 text-indigo-800 border-indigo-300",
+    "Problem-Solving": "bg-yellow-100 text-yellow-800 border-yellow-300",
+    "Verbal Comprehension": "bg-teal-100 text-teal-800 border-teal-300",
+    "Mathematical Skills": "bg-cyan-100 text-cyan-800 border-cyan-300",
+    "Working Memory": "bg-red-100 text-red-800 border-red-300",
   };
-  return colors[category] || "bg-gray-100 text-gray-800 border-gray-200";
+  return colors[category] || "bg-gray-100 text-gray-800 border-gray-300";
+};
+
+const getPoseEmoji = (category: string) => {
+  const emojis: Record<string, string> = {
+    "Openness": "🌟",
+    "Conscientiousness": "🎯",
+    "Extraversion": "☀️",
+    "Agreeableness": "💖",
+    "Emotional Stability": "🍃",
+    "Logical Reasoning": "🧩",
+    "Problem-Solving": "💡",
+    "Verbal Comprehension": "💬",
+    "Mathematical Skills": "🔢",
+    "Working Memory": "🧠",
+  };
+  return emojis[category] || "🧘";
 };
 
 export default function Yoga() {
@@ -70,6 +97,12 @@ export default function Yoga() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedPose, setSelectedPose] = useState<YogaPose | null>(null);
   const [isPoseDialogOpen, setIsPoseDialogOpen] = useState(false);
+  
+  const [isPracticing, setIsPracticing] = useState(false);
+  const [practiceTime, setPracticeTime] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -130,6 +163,19 @@ export default function Yoga() {
     }
   }, [children, selectedChildId]);
 
+  useEffect(() => {
+    if (isPracticing && !isPaused) {
+      timerRef.current = setInterval(() => {
+        setPracticeTime(prev => prev + 1);
+      }, 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isPracticing, isPaused]);
+
   const startSessionMutation = useMutation({
     mutationFn: async (data: { childId: string; yogaProgramId: string; notes?: string; rating?: number }) => {
       const response = await apiRequest("POST", "/api/yoga/sessions", {
@@ -186,12 +232,6 @@ export default function Yoga() {
     return matchesCategory && matchesAge;
   }) || [];
 
-  const personalizedPoses = yogaPoses?.filter(pose => {
-    if (!selectedChild) return false;
-    const matchesAge = childAge >= pose.ageMin && childAge <= pose.ageMax;
-    return matchesAge;
-  }) || [];
-
   const getRecommendedPoses = () => {
     if (!selectedChild || !yogaPoses) return [];
     
@@ -221,14 +261,29 @@ export default function Yoga() {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'beginner':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-100 text-emerald-800 border-emerald-300';
       case 'intermediate':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-amber-100 text-amber-800 border-amber-300';
       case 'advanced':
-        return 'bg-red-100 text-red-800';
+        return 'bg-rose-100 text-rose-800 border-rose-300';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 border-gray-300';
     }
+  };
+
+  const getDifficultyEmoji = (difficulty: string) => {
+    switch (difficulty) {
+      case 'beginner': return '🌱';
+      case 'intermediate': return '🌿';
+      case 'advanced': return '🌳';
+      default: return '🌱';
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleStartSession = (program: YogaProgram) => {
@@ -257,15 +312,64 @@ export default function Yoga() {
 
   const handlePoseClick = (pose: YogaPose) => {
     setSelectedPose(pose);
+    setCurrentStep(0);
+    setPracticeTime(0);
+    setIsPracticing(false);
+    setIsPaused(false);
     setIsPoseDialogOpen(true);
+  };
+
+  const handleStartPractice = () => {
+    setIsPracticing(true);
+    setIsPaused(false);
+    setPracticeTime(0);
+    setCurrentStep(0);
+  };
+
+  const handlePausePractice = () => {
+    setIsPaused(!isPaused);
+  };
+
+  const handleResetPractice = () => {
+    setIsPracticing(false);
+    setIsPaused(false);
+    setPracticeTime(0);
+    setCurrentStep(0);
+  };
+
+  const handleCompletePractice = () => {
+    setIsPracticing(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+    toast({
+      title: "🎉 Great Job!",
+      description: `You practiced ${selectedPose?.name} for ${formatTime(practiceTime)}!`,
+    });
+  };
+
+  const handleNextStep = () => {
+    if (selectedPose) {
+      const instructions = toStringArray(selectedPose.instructions);
+      if (currentStep < instructions.length - 1) {
+        setCurrentStep(prev => prev + 1);
+      }
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+    }
   };
 
   if (isLoading || programsLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-b from-purple-50 via-pink-50 to-orange-50">
         <Navbar />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" data-testid="loading-spinner"></div>
+          <div className="text-center">
+            <div className="animate-bounce text-6xl mb-4">🧘</div>
+            <div className="animate-pulse text-lg text-purple-600 font-medium">Loading Yoga Poses...</div>
+          </div>
         </div>
       </div>
     );
@@ -274,56 +378,83 @@ export default function Yoga() {
   const recommendedPoses = getRecommendedPoses();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 via-pink-50 to-orange-50">
       <Navbar />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-12">
           <div className="flex items-center justify-center mb-4">
-            <Flower className="h-12 w-12 text-secondary mr-4" />
-            <h1 className="text-3xl lg:text-4xl font-bold text-foreground" data-testid="text-yoga-title">
-              Kids Yoga Programs
-            </h1>
+            <div className="relative">
+              <div className="absolute -inset-4 bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 rounded-full blur-lg opacity-30 animate-pulse"></div>
+              <div className="relative bg-white rounded-full p-4 shadow-lg">
+                <Flower className="h-12 w-12 text-purple-600" />
+              </div>
+            </div>
           </div>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Help your child develop mindfulness, flexibility, and emotional balance through our specialized yoga programs and 21 comprehensive poses designed for young minds and bodies.
+          <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent mb-4" data-testid="text-yoga-title">
+            Kids Yoga Adventure
+          </h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Discover <span className="font-bold text-purple-600">21 amazing yoga poses</span> designed to help your child grow stronger, calmer, and happier! 🌈
           </p>
+          <div className="flex flex-wrap justify-center gap-4 mt-6">
+            <div className="flex items-center gap-2 bg-white rounded-full px-4 py-2 shadow-md">
+              <span className="text-2xl">🎯</span>
+              <span className="text-sm font-medium">10 Development Areas</span>
+            </div>
+            <div className="flex items-center gap-2 bg-white rounded-full px-4 py-2 shadow-md">
+              <span className="text-2xl">⏱️</span>
+              <span className="text-sm font-medium">Practice Timer</span>
+            </div>
+            <div className="flex items-center gap-2 bg-white rounded-full px-4 py-2 shadow-md">
+              <span className="text-2xl">📚</span>
+              <span className="text-sm font-medium">Step-by-Step Guide</span>
+            </div>
+          </div>
         </div>
 
         <div className="mb-8">
-          <Card data-testid="card-child-selection">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <User className="mr-2 h-5 w-5" />
-                Select Child
+          <Card className="border-2 border-purple-200 bg-white/80 backdrop-blur shadow-xl" data-testid="card-child-selection">
+            <CardHeader className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-t-lg">
+              <CardTitle className="flex items-center text-purple-800">
+                <div className="bg-purple-200 rounded-full p-2 mr-3">
+                  <User className="h-5 w-5 text-purple-700" />
+                </div>
+                Select Your Little Yogi
               </CardTitle>
-              <CardDescription>
-                Choose which child will be participating in the yoga program
+              <CardDescription className="text-purple-600">
+                Choose which child will be practicing yoga today 🧘‍♀️
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {!children || children.length === 0 ? (
-                <div className="text-center p-6 border border-dashed rounded-lg">
-                  <User className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground mb-4">
-                    You need to create a child profile before accessing yoga programs.
+                <div className="text-center p-8 border-2 border-dashed border-purple-200 rounded-xl bg-purple-50/50">
+                  <div className="text-5xl mb-4">👶</div>
+                  <p className="text-gray-600 mb-4">
+                    Create a child profile to start your yoga adventure!
                   </p>
-                  <Button data-testid="button-create-child">Create Child Profile</Button>
+                  <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600" data-testid="button-create-child">
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Create Child Profile
+                  </Button>
                 </div>
               ) : (
                 <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                  <SelectTrigger data-testid="select-child">
-                    <SelectValue placeholder="Choose a child" />
+                  <SelectTrigger className="border-2 border-purple-200 focus:border-purple-400" data-testid="select-child">
+                    <SelectValue placeholder="🧒 Choose a child to begin..." />
                   </SelectTrigger>
                   <SelectContent>
                     {children.map((child) => (
                       <SelectItem key={child.id} value={child.id} data-testid={`option-child-${child.id}`}>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-3">
                           <div 
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: child.profileColor || '#4F46E5' }}
-                          />
-                          <span>{child.name} (Age {child.age})</span>
+                            className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                            style={{ backgroundColor: child.profileColor || '#8B5CF6' }}
+                          >
+                            {child.name.charAt(0)}
+                          </div>
+                          <span className="font-medium">{child.name}</span>
+                          <Badge variant="outline" className="text-xs">Age {child.age}</Badge>
                         </div>
                       </SelectItem>
                     ))}
@@ -335,95 +466,127 @@ export default function Yoga() {
         </div>
 
         <Tabs defaultValue="poses" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="poses" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-3 bg-white/80 backdrop-blur p-1 rounded-xl shadow-lg border-2 border-purple-100">
+            <TabsTrigger value="poses" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white rounded-lg transition-all">
               <Flower className="h-4 w-4" />
-              Yoga Poses Library
+              <span className="hidden sm:inline">Pose Library</span>
+              <span className="sm:hidden">Poses</span>
             </TabsTrigger>
-            <TabsTrigger value="personalized" className="flex items-center gap-2">
+            <TabsTrigger value="personalized" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white rounded-lg transition-all">
               <Sparkles className="h-4 w-4" />
-              Personalized Recommendations
+              <span className="hidden sm:inline">For You</span>
+              <span className="sm:hidden">For You</span>
             </TabsTrigger>
-            <TabsTrigger value="programs" className="flex items-center gap-2">
+            <TabsTrigger value="programs" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white rounded-lg transition-all">
               <Play className="h-4 w-4" />
-              Programs & Sessions
+              <span className="hidden sm:inline">Programs</span>
+              <span className="sm:hidden">Programs</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="poses">
             <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Brain className="h-5 w-5" />
-                    21 Comprehensive Yoga Poses
-                  </CardTitle>
-                  <CardDescription>
-                    Organized by developmental benefits - each pose supports specific areas of your child's growth
-                  </CardDescription>
+              <Card className="border-2 border-purple-200 bg-white/90 backdrop-blur shadow-xl overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-3 text-2xl">
+                        <div className="bg-white/20 rounded-full p-2">
+                          <BookOpen className="h-6 w-6" />
+                        </div>
+                        21 Yoga Poses for Kids
+                      </CardTitle>
+                      <CardDescription className="text-white/90 mt-2">
+                        Each pose is designed to help with specific developmental skills - tap any pose to learn more! 🌟
+                      </CardDescription>
+                    </div>
+                    <div className="hidden md:block text-6xl">🧘‍♂️</div>
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {developmentCategories.map((category) => {
-                      const Icon = category.icon;
-                      const isSelected = selectedCategory === category.key;
-                      return (
-                        <Button
-                          key={category.key}
-                          variant={isSelected ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedCategory(category.key)}
-                          className="flex items-center gap-1"
-                        >
-                          <Icon className="h-3 w-3" />
-                          {category.label}
-                        </Button>
-                      );
-                    })}
+                <CardContent className="pt-6">
+                  <div className="mb-6">
+                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Filter by Development Area</h3>
+                    <ScrollArea className="w-full">
+                      <div className="flex gap-2 pb-2">
+                        {developmentCategories.map((category) => {
+                          const Icon = category.icon;
+                          const isSelected = selectedCategory === category.key;
+                          return (
+                            <Button
+                              key={category.key}
+                              variant={isSelected ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setSelectedCategory(category.key)}
+                              className={`flex items-center gap-2 whitespace-nowrap transition-all ${
+                                isSelected 
+                                  ? `bg-gradient-to-r ${category.color} text-white shadow-lg scale-105` 
+                                  : 'hover:scale-105'
+                              }`}
+                            >
+                              <Icon className="h-4 w-4" />
+                              {category.label}
+                              {category.key !== "All" && (
+                                <span className="ml-1">{getPoseEmoji(category.key)}</span>
+                              )}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
                   </div>
 
                   {posesLoading ? (
                     <div className="flex items-center justify-center py-12">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      <div className="text-center">
+                        <div className="animate-spin text-4xl mb-4">🌸</div>
+                        <p className="text-purple-600 font-medium">Loading poses...</p>
+                      </div>
                     </div>
                   ) : filteredPoses.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Flower className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No poses found</h3>
-                      <p className="text-muted-foreground">
-                        No yoga poses match the selected category{selectedChild ? ` for ${selectedChild.name}'s age` : ''}.
+                    <div className="text-center py-12 bg-purple-50 rounded-xl">
+                      <div className="text-6xl mb-4">🔍</div>
+                      <h3 className="text-lg font-semibold mb-2 text-purple-800">No poses found</h3>
+                      <p className="text-gray-600">
+                        Try selecting a different category{selectedChild ? ` or age-appropriate poses for ${selectedChild.name}` : ''}.
                       </p>
                     </div>
                   ) : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {filteredPoses.map((pose) => {
                         const CategoryIcon = getCategoryIcon(pose.developmentCategory);
+                        const categoryData = getCategoryData(pose.developmentCategory);
                         return (
                           <Card 
                             key={pose.id} 
-                            className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] border-2"
+                            className={`cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-[1.03] border-2 overflow-hidden group ${categoryData.bgColor}`}
                             onClick={() => handlePoseClick(pose)}
                           >
-                            <CardHeader className="pb-2">
+                            <div className={`h-2 bg-gradient-to-r ${categoryData.color}`}></div>
+                            <CardHeader className="pb-2 pt-4">
                               <div className="flex items-start justify-between">
-                                <div>
-                                  <CardTitle className="text-lg">{pose.name}</CardTitle>
-                                  <p className="text-sm text-muted-foreground italic">{pose.sanskritName}</p>
+                                <div className="flex-1">
+                                  <CardTitle className="text-lg group-hover:text-purple-700 transition-colors flex items-center gap-2">
+                                    <span>{getPoseEmoji(pose.developmentCategory)}</span>
+                                    {pose.name}
+                                  </CardTitle>
+                                  <p className="text-xs text-gray-500 italic mt-1">{pose.sanskritName}</p>
                                 </div>
-                                <Badge className={getDifficultyColor(pose.difficulty)}>
-                                  {pose.difficulty}
-                                </Badge>
                               </div>
                             </CardHeader>
-                            <CardContent>
-                              <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getCategoryColor(pose.developmentCategory)}`}>
-                                <CategoryIcon className="h-3 w-3" />
-                                {pose.developmentCategory}
+                            <CardContent className="pb-4">
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                <Badge className={`${getDifficultyColor(pose.difficulty)} border`}>
+                                  {getDifficultyEmoji(pose.difficulty)} {pose.difficulty}
+                                </Badge>
+                                <Badge variant="outline" className={`${getCategoryColor(pose.developmentCategory)} border`}>
+                                  <CategoryIcon className="h-3 w-3 mr-1" />
+                                  {pose.developmentCategory}
+                                </Badge>
                               </div>
-                              <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
+                              <p className="text-sm text-gray-600 line-clamp-2 mb-3">
                                 {pose.description}
                               </p>
-                              <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
+                              <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-200">
                                 <span className="flex items-center gap-1">
                                   <Clock className="h-3 w-3" />
                                   {pose.duration} min
@@ -433,9 +596,9 @@ export default function Yoga() {
                                   Ages {pose.ageMin}-{pose.ageMax}
                                 </span>
                               </div>
-                              <Button variant="ghost" size="sm" className="w-full mt-3">
-                                <Info className="mr-2 h-4 w-4" />
-                                View Details
+                              <Button variant="ghost" size="sm" className="w-full mt-3 bg-white/50 hover:bg-white group-hover:bg-purple-100">
+                                <Play className="mr-2 h-4 w-4" />
+                                Practice This Pose
                               </Button>
                             </CardContent>
                           </Card>
@@ -451,62 +614,74 @@ export default function Yoga() {
           <TabsContent value="personalized">
             <div className="space-y-6">
               {!selectedChild ? (
-                <Card>
+                <Card className="border-2 border-dashed border-purple-300 bg-purple-50/50">
                   <CardContent className="text-center py-12">
-                    <User className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Select a Child First</h3>
-                    <p className="text-muted-foreground">
-                      Please select a child above to see personalized yoga recommendations based on their age, height, and weight.
+                    <div className="text-6xl mb-4">👆</div>
+                    <h3 className="text-xl font-semibold mb-2 text-purple-800">Select a Child First</h3>
+                    <p className="text-gray-600 max-w-md mx-auto">
+                      Choose a child from the selector above to see personalized yoga recommendations based on their age, height, and weight.
                     </p>
                   </CardContent>
                 </Card>
               ) : (
                 <>
-                  <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950">
+                  <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-100 via-pink-100 to-orange-100 shadow-xl overflow-hidden">
+                    <div className="absolute top-0 right-0 text-9xl opacity-10">🌟</div>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-purple-600" />
+                      <CardTitle className="flex items-center gap-3 text-2xl text-purple-800">
+                        <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-full p-3 text-white">
+                          <Sparkles className="h-6 w-6" />
+                        </div>
                         Personalized for {selectedChild.name}
                       </CardTitle>
-                      <CardDescription>
-                        Based on age ({selectedChild.age} years)
-                        {selectedChild.height && `, height (${selectedChild.height} cm)`}
-                        {selectedChild.weight && `, weight (${selectedChild.weight} kg)`}
+                      <CardDescription className="text-purple-600">
+                        Yoga poses selected specifically for your child's development
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-3 gap-4 text-center">
-                        <div className="p-4 bg-white/50 dark:bg-black/20 rounded-lg">
-                          <div className="text-2xl font-bold text-purple-600">{selectedChild.age}</div>
-                          <div className="text-xs text-muted-foreground">Years Old</div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="bg-white/70 backdrop-blur rounded-xl p-4 text-center shadow-md border border-purple-200">
+                          <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                            {selectedChild.age}
+                          </div>
+                          <div className="text-xs text-gray-500 font-medium uppercase tracking-wide mt-1">Years Old</div>
+                          <div className="text-2xl mt-2">🎂</div>
                         </div>
-                        <div className="p-4 bg-white/50 dark:bg-black/20 rounded-lg">
-                          <div className="text-2xl font-bold text-pink-600">{selectedChild.height || "N/A"}</div>
-                          <div className="text-xs text-muted-foreground">Height (cm)</div>
+                        <div className="bg-white/70 backdrop-blur rounded-xl p-4 text-center shadow-md border border-purple-200">
+                          <div className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-orange-600 bg-clip-text text-transparent">
+                            {selectedChild.height || "—"}
+                          </div>
+                          <div className="text-xs text-gray-500 font-medium uppercase tracking-wide mt-1">Height (cm)</div>
+                          <div className="text-2xl mt-2">📏</div>
                         </div>
-                        <div className="p-4 bg-white/50 dark:bg-black/20 rounded-lg">
-                          <div className="text-2xl font-bold text-orange-600">{selectedChild.weight || "N/A"}</div>
-                          <div className="text-xs text-muted-foreground">Weight (kg)</div>
+                        <div className="bg-white/70 backdrop-blur rounded-xl p-4 text-center shadow-md border border-purple-200">
+                          <div className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                            {selectedChild.weight || "—"}
+                          </div>
+                          <div className="text-xs text-gray-500 font-medium uppercase tracking-wide mt-1">Weight (kg)</div>
+                          <div className="text-2xl mt-2">⚖️</div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Target className="h-5 w-5" />
-                        Recommended Poses for {selectedChild.name}
+                  <Card className="border-2 border-purple-200 bg-white/90 backdrop-blur shadow-xl">
+                    <CardHeader className="bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-t-lg">
+                      <CardTitle className="flex items-center gap-3">
+                        <div className="bg-white/20 rounded-full p-2">
+                          <Target className="h-6 w-6" />
+                        </div>
+                        Top 5 Recommended Poses
                       </CardTitle>
-                      <CardDescription>
-                        Top 5 poses selected for balanced development across key areas
+                      <CardDescription className="text-white/90">
+                        Selected for balanced development across key areas
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-6">
                       {recommendedPoses.length === 0 ? (
-                        <div className="text-center py-8">
-                          <Flower className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                          <p className="text-muted-foreground">
+                        <div className="text-center py-8 bg-gray-50 rounded-xl">
+                          <div className="text-5xl mb-4">🧘</div>
+                          <p className="text-gray-600">
                             No poses available for {selectedChild.name}'s age group at this time.
                           </p>
                         </div>
@@ -514,27 +689,35 @@ export default function Yoga() {
                         <div className="space-y-4">
                           {recommendedPoses.map((pose, index) => {
                             const CategoryIcon = getCategoryIcon(pose.developmentCategory);
+                            const categoryData = getCategoryData(pose.developmentCategory);
                             return (
                               <div 
                                 key={pose.id}
-                                className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                                className="flex items-center gap-4 p-4 bg-gradient-to-r from-gray-50 to-white border-2 border-gray-100 rounded-xl hover:border-purple-300 hover:shadow-lg cursor-pointer transition-all group"
                                 onClick={() => handlePoseClick(pose)}
                               >
-                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                                <div className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ${categoryData.color} text-white flex items-center justify-center font-bold text-xl shadow-lg`}>
                                   {index + 1}
                                 </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <h4 className="font-semibold">{pose.name}</h4>
-                                    <Badge className={getDifficultyColor(pose.difficulty)} variant="outline">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h4 className="font-bold text-lg group-hover:text-purple-700 transition-colors">
+                                      {getPoseEmoji(pose.developmentCategory)} {pose.name}
+                                    </h4>
+                                    <Badge className={`${getDifficultyColor(pose.difficulty)} border`}>
                                       {pose.difficulty}
                                     </Badge>
                                   </div>
-                                  <p className="text-sm text-muted-foreground line-clamp-1">{pose.description}</p>
+                                  <p className="text-sm text-gray-500 italic">{pose.sanskritName}</p>
+                                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs mt-2 ${getCategoryColor(pose.developmentCategory)} border`}>
+                                    <CategoryIcon className="h-3 w-3" />
+                                    {pose.developmentCategory}
+                                  </div>
                                 </div>
-                                <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs ${getCategoryColor(pose.developmentCategory)}`}>
-                                  <CategoryIcon className="h-3 w-3" />
-                                  {pose.developmentCategory}
+                                <div className="flex-shrink-0">
+                                  <Button variant="ghost" size="icon" className="rounded-full bg-purple-100 hover:bg-purple-200 group-hover:scale-110 transition-transform">
+                                    <ChevronRight className="h-5 w-5 text-purple-600" />
+                                  </Button>
                                 </div>
                               </div>
                             );
@@ -544,36 +727,38 @@ export default function Yoga() {
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="border-2 border-purple-200 bg-white/90 backdrop-blur shadow-xl">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Activity className="h-5 w-5" />
-                        All Age-Appropriate Poses ({personalizedPoses.length})
+                      <CardTitle className="flex items-center gap-2 text-purple-800">
+                        <Flower className="h-5 w-5" />
+                        All Age-Appropriate Poses for {selectedChild.name}
                       </CardTitle>
                       <CardDescription>
-                        Complete list of poses suitable for {selectedChild.name}'s age group
+                        {yogaPoses?.filter(p => childAge >= p.ageMin && childAge <= p.ageMax).length || 0} poses suitable for age {selectedChild.age}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {personalizedPoses.map((pose) => {
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {yogaPoses?.filter(p => childAge >= p.ageMin && childAge <= p.ageMax).map((pose) => {
                           const CategoryIcon = getCategoryIcon(pose.developmentCategory);
                           return (
-                            <Card 
-                              key={pose.id} 
-                              className="cursor-pointer hover:shadow-md transition-all"
+                            <div 
+                              key={pose.id}
+                              className="flex items-center gap-3 p-3 border rounded-lg hover:bg-purple-50 cursor-pointer transition-all"
                               onClick={() => handlePoseClick(pose)}
                             >
-                              <CardContent className="pt-4">
-                                <div className="flex items-start justify-between mb-2">
-                                  <h4 className="font-semibold text-sm">{pose.name}</h4>
-                                  <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${getCategoryColor(pose.developmentCategory)}`}>
-                                    <CategoryIcon className="h-2.5 w-2.5" />
-                                  </div>
+                              <span className="text-2xl">{getPoseEmoji(pose.developmentCategory)}</span>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-sm truncate">{pose.name}</h4>
+                                <div className="flex items-center gap-1 text-xs text-gray-500">
+                                  <CategoryIcon className="h-3 w-3" />
+                                  {pose.developmentCategory}
                                 </div>
-                                <p className="text-xs text-muted-foreground line-clamp-2">{pose.description}</p>
-                              </CardContent>
-                            </Card>
+                              </div>
+                              <Badge className={`${getDifficultyColor(pose.difficulty)} text-xs`}>
+                                {getDifficultyEmoji(pose.difficulty)}
+                              </Badge>
+                            </div>
                           );
                         })}
                       </div>
@@ -585,213 +770,334 @@ export default function Yoga() {
           </TabsContent>
 
           <TabsContent value="programs">
-            {selectedChildId && (
-              <>
+            {selectedChildId ? (
+              <div className="space-y-6">
                 {yogaSessions && yogaSessions.length > 0 && (
-                  <div className="mb-8">
-                    <Card data-testid="card-recent-sessions">
-                      <CardHeader>
-                        <CardTitle>Recent Sessions</CardTitle>
-                        <CardDescription>
-                          {selectedChild?.name}'s latest yoga practice
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {yogaSessions.slice(0, 3).map((session) => (
-                            <div
-                              key={session.id}
-                              className="p-4 border rounded-lg"
-                              data-testid={`session-${session.id}`}
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <Badge variant="outline" data-testid={`badge-completed-${session.id}`}>
-                                  Completed
-                                </Badge>
-                                {session.rating && (
-                                  <div className="flex items-center text-sm text-muted-foreground">
-                                    <Star className="mr-1 h-3 w-3 fill-current text-accent" />
-                                    <span data-testid={`rating-${session.id}`}>{session.rating}/5</span>
-                                  </div>
-                                )}
-                              </div>
-                              <p className="text-sm font-medium mb-1" data-testid={`session-date-${session.id}`}>
-                                {new Date(session.startedAt!).toLocaleDateString()}
-                              </p>
-                              <p className="text-sm text-muted-foreground" data-testid={`session-duration-${session.id}`}>
-                                {session.duration} minutes
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
-
-                <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-foreground mb-6">
-                    Available Programs for {selectedChild?.name}
-                  </h2>
-                  
-                  {availablePrograms.length === 0 ? (
-                    <Card className="text-center p-8" data-testid="card-no-programs">
-                      <CardContent>
-                        <Flower className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No programs available</h3>
-                        <p className="text-muted-foreground">
-                          No yoga programs are currently available for {selectedChild?.name}'s age group ({childAge} years).
-                        </p>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {availablePrograms.map((program) => (
-                        <Card 
-                          key={program.id} 
-                          className="service-card hover:shadow-lg transition-all hover:scale-105"
-                          data-testid={`card-program-${program.id}`}
-                        >
-                          <CardHeader>
-                            <div className="relative">
-                              {program.thumbnailUrl && (
-                                <img 
-                                  src={program.thumbnailUrl} 
-                                  alt={program.title}
-                                  className="w-full h-32 object-cover rounded-lg mb-4"
-                                  data-testid={`img-program-${program.id}`}
-                                />
-                              )}
-                              <Badge 
-                                className={`absolute top-2 right-2 ${getDifficultyColor(program.difficulty)}`}
-                                data-testid={`badge-difficulty-${program.id}`}
-                              >
-                                {program.difficulty}
+                  <Card className="border-2 border-purple-200 bg-white/90 backdrop-blur shadow-xl" data-testid="card-recent-sessions">
+                    <CardHeader className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-t-lg">
+                      <CardTitle className="flex items-center gap-2">
+                        <Award className="h-5 w-5" />
+                        {selectedChild?.name}'s Recent Practice
+                      </CardTitle>
+                      <CardDescription className="text-white/90">
+                        Keep up the great work! 🌟
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      <div className="grid md:grid-cols-3 gap-4">
+                        {yogaSessions.slice(0, 3).map((session) => (
+                          <div
+                            key={session.id}
+                            className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl"
+                            data-testid={`session-${session.id}`}
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <Badge className="bg-green-100 text-green-800 border-green-300" data-testid={`badge-completed-${session.id}`}>
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Done
                               </Badge>
-                            </div>
-                            <CardTitle className="text-lg" data-testid={`text-program-title-${program.id}`}>
-                              {program.title}
-                            </CardTitle>
-                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                              <div className="flex items-center">
-                                <Clock className="mr-1 h-3 w-3" />
-                                <span data-testid={`text-duration-${program.id}`}>{program.duration} min</span>
-                              </div>
-                              <Badge variant="outline" className="text-xs" data-testid={`badge-age-range-${program.id}`}>
-                                Ages {program.ageMin}-{program.ageMax}
-                              </Badge>
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <CardDescription className="mb-4" data-testid={`text-description-${program.id}`}>
-                              {program.description}
-                            </CardDescription>
-                            
-                            {toStringArray(program.benefits).length > 0 && (
-                              <div className="mb-4">
-                                <h4 className="font-semibold text-sm mb-2">Benefits:</h4>
-                                <div className="flex flex-wrap gap-1">
-                                  {toStringArray(program.benefits).map((benefit, index) => (
-                                    <Badge 
-                                      key={index} 
-                                      variant="secondary" 
-                                      className="text-xs"
-                                      data-testid={`badge-benefit-${program.id}-${index}`}
-                                    >
-                                      {benefit}
-                                    </Badge>
+                              {session.rating && (
+                                <div className="flex items-center text-amber-600">
+                                  {[...Array(session.rating)].map((_, i) => (
+                                    <Star key={i} className="h-4 w-4 fill-current" />
                                   ))}
                                 </div>
-                              </div>
-                            )}
-                            
-                            <Button 
-                              onClick={() => handleStartSession(program)}
-                              className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
-                              data-testid={`button-start-session-${program.id}`}
-                            >
-                              <Play className="mr-2 h-4 w-4" />
-                              Start Session
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
+                              )}
+                            </div>
+                            <p className="text-sm font-semibold text-gray-800" data-testid={`session-date-${session.id}`}>
+                              {new Date(session.startedAt!).toLocaleDateString('en-US', { 
+                                weekday: 'short', 
+                                month: 'short', 
+                                day: 'numeric' 
+                              })}
+                            </p>
+                            <p className="text-sm text-gray-500 flex items-center gap-1" data-testid={`session-duration-${session.id}`}>
+                              <Clock className="h-3 w-3" />
+                              {session.duration} minutes
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-            {!selectedChildId && (
-              <Card>
+                <Card className="border-2 border-purple-200 bg-white/90 backdrop-blur shadow-xl">
+                  <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-t-lg">
+                    <CardTitle className="flex items-center gap-2">
+                      <Play className="h-5 w-5" />
+                      Yoga Programs for {selectedChild?.name}
+                    </CardTitle>
+                    <CardDescription className="text-white/90">
+                      Structured programs designed for age {childAge}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    {availablePrograms.length === 0 ? (
+                      <div className="text-center py-12 bg-blue-50 rounded-xl" data-testid="card-no-programs">
+                        <div className="text-6xl mb-4">🎯</div>
+                        <h3 className="text-lg font-semibold mb-2 text-blue-800">Coming Soon!</h3>
+                        <p className="text-gray-600">
+                          Structured yoga programs for {selectedChild?.name}'s age group ({childAge} years) will be available soon.
+                          <br />In the meantime, explore our 21 individual poses!
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {availablePrograms.map((program) => (
+                          <Card 
+                            key={program.id} 
+                            className="hover:shadow-lg transition-all hover:scale-[1.02] border-2 border-blue-100"
+                            data-testid={`card-program-${program.id}`}
+                          >
+                            <CardHeader>
+                              <CardTitle className="text-lg">{program.title}</CardTitle>
+                              <CardDescription>{program.description}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-4 w-4" />
+                                  {program.duration} min
+                                </span>
+                                <Badge className={getDifficultyColor(program.difficulty)}>
+                                  {program.difficulty}
+                                </Badge>
+                              </div>
+                              <Button 
+                                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                                onClick={() => handleStartSession(program)}
+                                data-testid={`button-start-${program.id}`}
+                              >
+                                <Play className="mr-2 h-4 w-4" />
+                                Start Session
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <Card className="border-2 border-dashed border-purple-300 bg-purple-50/50">
                 <CardContent className="text-center py-12">
-                  <User className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Select a Child First</h3>
-                  <p className="text-muted-foreground">
-                    Please select a child above to view available programs and sessions.
+                  <div className="text-6xl mb-4">👆</div>
+                  <h3 className="text-xl font-semibold mb-2 text-purple-800">Select a Child First</h3>
+                  <p className="text-gray-600">
+                    Choose a child from the selector above to see available yoga programs.
                   </p>
                 </CardContent>
               </Card>
             )}
           </TabsContent>
         </Tabs>
-
-        <div className="bg-muted/30 rounded-2xl p-8 mt-8">
-          <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
-            Benefits of Kids Yoga
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Heart className="h-8 w-8 text-secondary" />
-              </div>
-              <h3 className="font-semibold mb-2">Emotional Well-being</h3>
-              <p className="text-sm text-muted-foreground">
-                Helps children manage stress, anxiety, and develop emotional regulation skills.
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Target className="h-8 w-8 text-accent" />
-              </div>
-              <h3 className="font-semibold mb-2">Focus & Concentration</h3>
-              <p className="text-sm text-muted-foreground">
-                Improves attention span and concentration through mindful movement and breathing.
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Flower className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="font-semibold mb-2">Physical Health</h3>
-              <p className="text-sm text-muted-foreground">
-                Enhances flexibility, strength, balance, and overall physical well-being.
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
 
+      <Dialog open={isPoseDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          handleResetPractice();
+        }
+        setIsPoseDialogOpen(open);
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {selectedPose && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <DialogTitle className="text-2xl flex items-center gap-2">
+                      <span className="text-3xl">{getPoseEmoji(selectedPose.developmentCategory)}</span>
+                      {selectedPose.name}
+                    </DialogTitle>
+                    <DialogDescription className="text-lg italic mt-1">
+                      {selectedPose.sanskritName}
+                    </DialogDescription>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Badge className={`${getDifficultyColor(selectedPose.difficulty)} border`}>
+                      {getDifficultyEmoji(selectedPose.difficulty)} {selectedPose.difficulty}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      Ages {selectedPose.ageMin}-{selectedPose.ageMax}
+                    </Badge>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                <div className={`p-4 rounded-xl ${getCategoryColor(selectedPose.developmentCategory)} border-2`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    {(() => {
+                      const CategoryIcon = getCategoryIcon(selectedPose.developmentCategory);
+                      return <CategoryIcon className="h-5 w-5" />;
+                    })()}
+                    <span className="font-semibold">Development Focus: {selectedPose.developmentCategory}</span>
+                  </div>
+                  <p className="text-sm">{selectedPose.description}</p>
+                </div>
+
+                {isPracticing && (
+                  <Card className="bg-gradient-to-r from-purple-500 to-pink-500 text-white overflow-hidden">
+                    <CardContent className="p-6">
+                      <div className="text-center mb-4">
+                        <div className="text-5xl font-mono font-bold mb-2">
+                          {formatTime(practiceTime)}
+                        </div>
+                        <p className="text-white/80">Practice Timer</p>
+                      </div>
+                      <div className="flex justify-center gap-3">
+                        <Button 
+                          variant="secondary" 
+                          size="lg"
+                          onClick={handlePausePractice}
+                          className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                        >
+                          {isPaused ? <Play className="h-5 w-5 mr-2" /> : <Pause className="h-5 w-5 mr-2" />}
+                          {isPaused ? 'Resume' : 'Pause'}
+                        </Button>
+                        <Button 
+                          variant="secondary" 
+                          size="lg"
+                          onClick={handleResetPractice}
+                          className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                        >
+                          <RotateCcw className="h-5 w-5 mr-2" />
+                          Reset
+                        </Button>
+                        <Button 
+                          size="lg"
+                          onClick={handleCompletePractice}
+                          className="bg-green-500 hover:bg-green-600"
+                        >
+                          <CheckCircle2 className="h-5 w-5 mr-2" />
+                          Complete
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <div>
+                  <h4 className="font-semibold text-lg flex items-center gap-2 mb-3">
+                    <BookOpen className="h-5 w-5 text-purple-600" />
+                    Step-by-Step Instructions
+                  </h4>
+                  <div className="space-y-3">
+                    {toStringArray(selectedPose.instructions).map((instruction, index) => (
+                      <div 
+                        key={index}
+                        className={`flex gap-3 p-3 rounded-lg transition-all ${
+                          isPracticing && currentStep === index 
+                            ? 'bg-purple-100 border-2 border-purple-400 shadow-md' 
+                            : 'bg-gray-50 border border-gray-200'
+                        }`}
+                      >
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                          isPracticing && currentStep === index
+                            ? 'bg-purple-600 text-white'
+                            : isPracticing && currentStep > index
+                            ? 'bg-green-500 text-white'
+                            : 'bg-gray-200 text-gray-600'
+                        }`}>
+                          {isPracticing && currentStep > index ? <Check className="h-4 w-4" /> : index + 1}
+                        </div>
+                        <p className={`text-sm ${isPracticing && currentStep === index ? 'font-medium text-purple-900' : 'text-gray-700'}`}>
+                          {instruction}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {isPracticing && (
+                    <div className="flex justify-between mt-4">
+                      <Button 
+                        variant="outline" 
+                        onClick={handlePrevStep}
+                        disabled={currentStep === 0}
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Previous
+                      </Button>
+                      <div className="text-sm text-gray-500">
+                        Step {currentStep + 1} of {toStringArray(selectedPose.instructions).length}
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        onClick={handleNextStep}
+                        disabled={currentStep === toStringArray(selectedPose.instructions).length - 1}
+                      >
+                        Next
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-lg flex items-center gap-2 mb-3">
+                    <Heart className="h-5 w-5 text-pink-600" />
+                    Benefits
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {toStringArray(selectedPose.benefits).map((benefit, index) => (
+                      <Badge key={index} variant="outline" className="bg-pink-50 text-pink-700 border-pink-200 py-1.5 px-3">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        {benefit}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {selectedPose.practiceDescription && (
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-xl border border-blue-200">
+                    <h4 className="font-semibold flex items-center gap-2 mb-2 text-blue-800">
+                      <Sparkles className="h-4 w-4" />
+                      Practice Tip
+                    </h4>
+                    <p className="text-sm text-blue-700">{selectedPose.practiceDescription}</p>
+                  </div>
+                )}
+
+                {!isPracticing && (
+                  <Button 
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-lg py-6"
+                    onClick={handleStartPractice}
+                  >
+                    <Timer className="mr-2 h-5 w-5" />
+                    Start Practice Session
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isSessionDialogOpen} onOpenChange={setIsSessionDialogOpen}>
-        <DialogContent data-testid="dialog-complete-session">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Complete Yoga Session</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5 text-amber-500" />
+              Complete Yoga Session
+            </DialogTitle>
             <DialogDescription>
-              How was {selectedChild?.name}'s yoga session with "{selectedProgram?.title}"?
+              Rate your experience and add any notes about {selectedChild?.name}'s session.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="rating">Session Rating</Label>
+              <Label htmlFor="rating" className="text-sm font-medium">How was the session?</Label>
               <div className="flex items-center space-x-1 mt-2">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
                     onClick={() => setSessionRating(star)}
-                    className={`p-1 ${star <= sessionRating ? 'text-accent' : 'text-muted-foreground'}`}
+                    className={`p-1 transition-transform hover:scale-110 ${star <= sessionRating ? 'text-amber-400' : 'text-gray-300'}`}
                     data-testid={`star-${star}`}
                   >
-                    <Star className="h-6 w-6 fill-current" />
+                    <Star className="h-8 w-8 fill-current" />
                   </button>
                 ))}
               </div>
@@ -801,99 +1107,32 @@ export default function Yoga() {
               <Label htmlFor="notes">Session Notes (Optional)</Label>
               <Textarea
                 id="notes"
-                placeholder="How did the session go? Any observations about your child's experience..."
+                placeholder="How did the session go? Any observations..."
                 value={sessionNotes}
                 onChange={(e) => setSessionNotes(e.target.value)}
                 className="mt-2"
                 data-testid="textarea-session-notes"
               />
             </div>
-            
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsSessionDialogOpen(false)} data-testid="button-cancel">
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleCompleteSession}
-                disabled={startSessionMutation.isPending}
-                data-testid="button-complete-session"
-              >
-                {startSessionMutation.isPending ? "Saving..." : "Complete Session"}
-              </Button>
-            </div>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isPoseDialogOpen} onOpenChange={setIsPoseDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          {selectedPose && (
-            <>
-              <DialogHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <DialogTitle className="text-xl">{selectedPose.name}</DialogTitle>
-                    <p className="text-sm text-muted-foreground italic mt-1">{selectedPose.sanskritName}</p>
-                  </div>
-                  <Badge className={getDifficultyColor(selectedPose.difficulty)}>
-                    {selectedPose.difficulty}
-                  </Badge>
-                </div>
-              </DialogHeader>
-              
-              <div className="space-y-4">
-                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${getCategoryColor(selectedPose.developmentCategory)}`}>
-                  {(() => {
-                    const CategoryIcon = getCategoryIcon(selectedPose.developmentCategory);
-                    return <CategoryIcon className="h-4 w-4" />;
-                  })()}
-                  <span className="font-medium">{selectedPose.developmentCategory}</span>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Description</h4>
-                  <p className="text-muted-foreground">{selectedPose.description}</p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Instructions</h4>
-                  <ol className="list-decimal list-inside space-y-2">
-                    {toStringArray(selectedPose.instructions).map((instruction, index) => (
-                      <li key={index} className="text-muted-foreground">{instruction}</li>
-                    ))}
-                  </ol>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Benefits</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {toStringArray(selectedPose.benefits).map((benefit, index) => (
-                      <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                        <Check className="h-3 w-3" />
-                        {benefit}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-4 border-t">
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      {selectedPose.duration} minutes
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <User className="h-4 w-4" />
-                      Ages {selectedPose.ageMin}-{selectedPose.ageMax}
-                    </span>
-                  </div>
-                  <Button onClick={() => setIsPoseDialogOpen(false)}>
-                    Close
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSessionDialogOpen(false)} data-testid="button-cancel">
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCompleteSession}
+              disabled={startSessionMutation.isPending}
+              className="bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600"
+              data-testid="button-complete-session"
+            >
+              {startSessionMutation.isPending ? "Saving..." : (
+                <>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Complete Session
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
