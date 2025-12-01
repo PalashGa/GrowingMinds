@@ -349,11 +349,11 @@ export default function Yoga() {
                           {program.description}
                         </CardDescription>
                         
-                        {program.benefits && (
+                        {program.benefits && Array.isArray(program.benefits) && (
                           <div className="mb-4">
                             <h4 className="font-semibold text-sm mb-2">Benefits:</h4>
                             <div className="flex flex-wrap gap-1">
-                              {(program.benefits as string[]).map((benefit, index) => (
+                              {(program.benefits as string[]).map((benefit: string, index: number) => (
                                 <Badge 
                                   key={index} 
                                   variant="secondary" 
