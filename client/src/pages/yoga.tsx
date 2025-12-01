@@ -12,14 +12,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Slider } from "@/components/ui/slider";
 import { 
   Flower, Play, Clock, Star, User, Heart, Target, Brain, Sparkles, Activity, 
   BookOpen, Users, Zap, Eye, Scale, Lightbulb, MessageSquare, Calculator, 
   HandHeart, Check, Info, Pause, RotateCcw, Timer, Award, ChevronRight,
-  ArrowLeft, ArrowRight, Volume2, VolumeX, CheckCircle2
+  ArrowLeft, ArrowRight, Volume2, VolumeX, CheckCircle2, Ruler, Weight, Calendar
 } from "lucide-react";
 import type { YogaProgram, Child, YogaSession, YogaPose } from "@shared/schema";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -103,6 +105,11 @@ export default function Yoga() {
   const [isPaused, setIsPaused] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const [customAge, setCustomAge] = useState<number>(10);
+  const [customHeight, setCustomHeight] = useState<number>(130);
+  const [customWeight, setCustomWeight] = useState<number>(30);
+  const [useCustomValues, setUseCustomValues] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -222,6 +229,10 @@ export default function Yoga() {
   const selectedChild = children?.find(child => child.id === selectedChildId);
   const childAge = selectedChild?.age || 10;
 
+  const effectiveAge = useCustomValues ? customAge : childAge;
+  const effectiveHeight = useCustomValues ? customHeight : (selectedChild?.height || null);
+  const effectiveWeight = useCustomValues ? customWeight : (selectedChild?.weight || null);
+
   const availablePrograms = yogaPrograms?.filter(program => 
     childAge >= program.ageMin && childAge <= program.ageMax
   ) || [];
@@ -232,30 +243,60 @@ export default function Yoga() {
     return matchesCategory && matchesAge;
   }) || [];
 
+  const getDifficultyForChild = (age: number, height: number | null, weight: number | null) => {
+    if (age <= 7) return 'beginner';
+    if (age <= 10) return 'intermediate';
+    if (age <= 13) {
+      if (height && height > 150) return 'intermediate';
+      return 'beginner';
+    }
+    return 'advanced';
+  };
+
   const getRecommendedPoses = () => {
-    if (!selectedChild || !yogaPoses) return [];
+    if (!yogaPoses) return [];
+    if (!useCustomValues && !selectedChild) return [];
     
-    const categories = [
+    const age = effectiveAge;
+    const height = effectiveHeight;
+    const weight = effectiveWeight;
+    const recommendedDifficulty = getDifficultyForChild(age, height, weight);
+    
+    const allCategories = [
       "Emotional Stability",
       "Conscientiousness", 
       "Logical Reasoning",
       "Problem-Solving",
-      "Working Memory"
+      "Working Memory",
+      "Openness",
+      "Agreeableness",
+      "Extraversion",
+      "Verbal Comprehension",
+      "Mathematical Skills"
     ];
     
     const recommended: YogaPose[] = [];
-    categories.forEach(category => {
+    
+    allCategories.forEach(category => {
       const categoryPoses = yogaPoses.filter(pose => 
         pose.developmentCategory === category && 
-        childAge >= pose.ageMin && 
-        childAge <= pose.ageMax
+        age >= pose.ageMin && 
+        age <= pose.ageMax
       );
-      if (categoryPoses.length > 0) {
-        recommended.push(categoryPoses[0]);
+      
+      const priorityPose = categoryPoses.find(p => p.difficulty === recommendedDifficulty) || categoryPoses[0];
+      if (priorityPose && !recommended.find(r => r.id === priorityPose.id)) {
+        recommended.push(priorityPose);
       }
     });
     
-    return recommended.slice(0, 5);
+    return recommended.slice(0, 6);
+  };
+
+  const getAllAgePoses = () => {
+    if (!yogaPoses) return [];
+    const age = effectiveAge;
+    return yogaPoses.filter(pose => age >= pose.ageMin && age <= pose.ageMax);
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -613,68 +654,162 @@ export default function Yoga() {
 
           <TabsContent value="personalized">
             <div className="space-y-6">
-              {!selectedChild ? (
-                <Card className="border-2 border-dashed border-purple-300 bg-purple-50/50">
-                  <CardContent className="text-center py-12">
-                    <div className="text-6xl mb-4">👆</div>
-                    <h3 className="text-xl font-semibold mb-2 text-purple-800">Select a Child First</h3>
-                    <p className="text-gray-600 max-w-md mx-auto">
-                      Choose a child from the selector above to see personalized yoga recommendations based on their age, height, and weight.
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <>
-                  <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-100 via-pink-100 to-orange-100 shadow-xl overflow-hidden">
-                    <div className="absolute top-0 right-0 text-9xl opacity-10">🌟</div>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-3 text-2xl text-purple-800">
-                        <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-full p-3 text-white">
-                          <Sparkles className="h-6 w-6" />
+              <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-100 via-pink-100 to-orange-100 shadow-xl overflow-hidden">
+                <div className="absolute top-0 right-0 text-9xl opacity-10">🌟</div>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3 text-2xl text-purple-800">
+                    <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-full p-3 text-white">
+                      <Sparkles className="h-6 w-6" />
+                    </div>
+                    Personalized Yoga Finder
+                  </CardTitle>
+                  <CardDescription className="text-purple-600">
+                    Enter your child's details to get personalized yoga pose recommendations
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex items-center gap-4 p-4 bg-white/70 rounded-xl border border-purple-200">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="useCustom"
+                        checked={useCustomValues}
+                        onChange={(e) => setUseCustomValues(e.target.checked)}
+                        className="w-5 h-5 rounded border-purple-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <Label htmlFor="useCustom" className="text-sm font-medium cursor-pointer">
+                        Use custom values instead of child profile
+                      </Label>
+                    </div>
+                    {selectedChild && !useCustomValues && (
+                      <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300">
+                        Using {selectedChild.name}'s profile
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-6">
+                    <div className="space-y-3">
+                      <Label className="flex items-center gap-2 text-purple-800 font-semibold">
+                        <div className="bg-purple-200 rounded-full p-1.5">
+                          <Calendar className="h-4 w-4 text-purple-700" />
                         </div>
-                        Personalized for {selectedChild.name}
-                      </CardTitle>
-                      <CardDescription className="text-purple-600">
-                        Yoga poses selected specifically for your child's development
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="bg-white/70 backdrop-blur rounded-xl p-4 text-center shadow-md border border-purple-200">
-                          <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                            {selectedChild.age}
-                          </div>
-                          <div className="text-xs text-gray-500 font-medium uppercase tracking-wide mt-1">Years Old</div>
-                          <div className="text-2xl mt-2">🎂</div>
+                        Age (Years)
+                      </Label>
+                      <div className="bg-white rounded-xl p-4 shadow-md border border-purple-200">
+                        <div className="text-center mb-3">
+                          <span className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                            {useCustomValues ? customAge : (selectedChild?.age || 10)}
+                          </span>
+                          <span className="text-gray-500 ml-1">years</span>
                         </div>
-                        <div className="bg-white/70 backdrop-blur rounded-xl p-4 text-center shadow-md border border-purple-200">
-                          <div className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-orange-600 bg-clip-text text-transparent">
-                            {selectedChild.height || "—"}
-                          </div>
-                          <div className="text-xs text-gray-500 font-medium uppercase tracking-wide mt-1">Height (cm)</div>
-                          <div className="text-2xl mt-2">📏</div>
-                        </div>
-                        <div className="bg-white/70 backdrop-blur rounded-xl p-4 text-center shadow-md border border-purple-200">
-                          <div className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                            {selectedChild.weight || "—"}
-                          </div>
-                          <div className="text-xs text-gray-500 font-medium uppercase tracking-wide mt-1">Weight (kg)</div>
-                          <div className="text-2xl mt-2">⚖️</div>
+                        {useCustomValues && (
+                          <Slider
+                            value={[customAge]}
+                            onValueChange={(val) => setCustomAge(val[0])}
+                            min={5}
+                            max={16}
+                            step={1}
+                            className="w-full"
+                          />
+                        )}
+                        <div className="flex justify-between text-xs text-gray-400 mt-2">
+                          <span>5 yrs</span>
+                          <span>16 yrs</span>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
 
+                    <div className="space-y-3">
+                      <Label className="flex items-center gap-2 text-pink-800 font-semibold">
+                        <div className="bg-pink-200 rounded-full p-1.5">
+                          <Ruler className="h-4 w-4 text-pink-700" />
+                        </div>
+                        Height (cm)
+                      </Label>
+                      <div className="bg-white rounded-xl p-4 shadow-md border border-pink-200">
+                        <div className="text-center mb-3">
+                          <span className="text-4xl font-bold bg-gradient-to-r from-pink-600 to-orange-600 bg-clip-text text-transparent">
+                            {useCustomValues ? customHeight : (selectedChild?.height || "—")}
+                          </span>
+                          <span className="text-gray-500 ml-1">cm</span>
+                        </div>
+                        {useCustomValues && (
+                          <Slider
+                            value={[customHeight]}
+                            onValueChange={(val) => setCustomHeight(val[0])}
+                            min={90}
+                            max={180}
+                            step={1}
+                            className="w-full"
+                          />
+                        )}
+                        <div className="flex justify-between text-xs text-gray-400 mt-2">
+                          <span>90 cm</span>
+                          <span>180 cm</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label className="flex items-center gap-2 text-orange-800 font-semibold">
+                        <div className="bg-orange-200 rounded-full p-1.5">
+                          <Scale className="h-4 w-4 text-orange-700" />
+                        </div>
+                        Weight (kg)
+                      </Label>
+                      <div className="bg-white rounded-xl p-4 shadow-md border border-orange-200">
+                        <div className="text-center mb-3">
+                          <span className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                            {useCustomValues ? customWeight : (selectedChild?.weight || "—")}
+                          </span>
+                          <span className="text-gray-500 ml-1">kg</span>
+                        </div>
+                        {useCustomValues && (
+                          <Slider
+                            value={[customWeight]}
+                            onValueChange={(val) => setCustomWeight(val[0])}
+                            min={15}
+                            max={80}
+                            step={1}
+                            className="w-full"
+                          />
+                        )}
+                        <div className="flex justify-between text-xs text-gray-400 mt-2">
+                          <span>15 kg</span>
+                          <span>80 kg</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {useCustomValues && (
+                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-green-50 to-teal-50 rounded-xl border border-green-200">
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                      <p className="text-sm text-green-800">
+                        Showing recommendations for a <strong>{customAge}-year-old</strong> child 
+                        ({customHeight} cm, {customWeight} kg)
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {(useCustomValues || selectedChild) && (
+                <>
                   <Card className="border-2 border-purple-200 bg-white/90 backdrop-blur shadow-xl">
                     <CardHeader className="bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-t-lg">
                       <CardTitle className="flex items-center gap-3">
                         <div className="bg-white/20 rounded-full p-2">
                           <Target className="h-6 w-6" />
                         </div>
-                        Top 5 Recommended Poses
+                        Recommended Poses
                       </CardTitle>
                       <CardDescription className="text-white/90">
-                        Selected for balanced development across key areas
+                        {useCustomValues 
+                          ? `Best poses for age ${customAge} (${customHeight}cm, ${customWeight}kg)`
+                          : `Best poses for ${selectedChild?.name} (age ${selectedChild?.age})`
+                        }
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6">
@@ -682,11 +817,11 @@ export default function Yoga() {
                         <div className="text-center py-8 bg-gray-50 rounded-xl">
                           <div className="text-5xl mb-4">🧘</div>
                           <p className="text-gray-600">
-                            No poses available for {selectedChild.name}'s age group at this time.
+                            No poses available for this age group. Try adjusting the age.
                           </p>
                         </div>
                       ) : (
-                        <div className="space-y-4">
+                        <div className="grid md:grid-cols-2 gap-4">
                           {recommendedPoses.map((pose, index) => {
                             const CategoryIcon = getCategoryIcon(pose.developmentCategory);
                             const categoryData = getCategoryData(pose.developmentCategory);
@@ -731,15 +866,15 @@ export default function Yoga() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-purple-800">
                         <Flower className="h-5 w-5" />
-                        All Age-Appropriate Poses for {selectedChild.name}
+                        All Suitable Poses
                       </CardTitle>
                       <CardDescription>
-                        {yogaPoses?.filter(p => childAge >= p.ageMin && childAge <= p.ageMax).length || 0} poses suitable for age {selectedChild.age}
+                        {getAllAgePoses().length} poses suitable for age {effectiveAge}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {yogaPoses?.filter(p => childAge >= p.ageMin && childAge <= p.ageMax).map((pose) => {
+                        {getAllAgePoses().map((pose) => {
                           const CategoryIcon = getCategoryIcon(pose.developmentCategory);
                           return (
                             <div 
@@ -765,6 +900,25 @@ export default function Yoga() {
                     </CardContent>
                   </Card>
                 </>
+              )}
+
+              {!useCustomValues && !selectedChild && (
+                <Card className="border-2 border-dashed border-purple-300 bg-purple-50/50">
+                  <CardContent className="text-center py-12">
+                    <div className="text-6xl mb-4">🧘‍♀️</div>
+                    <h3 className="text-xl font-semibold mb-2 text-purple-800">Get Started</h3>
+                    <p className="text-gray-600 max-w-md mx-auto mb-4">
+                      Select a child from above, or check "Use custom values" to enter age, height, and weight manually.
+                    </p>
+                    <Button 
+                      onClick={() => setUseCustomValues(true)}
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Enter Custom Values
+                    </Button>
+                  </CardContent>
+                </Card>
               )}
             </div>
           </TabsContent>
