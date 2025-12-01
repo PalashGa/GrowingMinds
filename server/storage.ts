@@ -6,6 +6,8 @@ import {
   assessmentResults,
   yogaPrograms,
   yogaSessions,
+  yogaPoses,
+  yogaPoseSessions,
   nutritionPlans,
   roboticsModules,
   roboticsProgress,
@@ -22,6 +24,9 @@ import {
   type YogaProgram,
   type YogaSession,
   type InsertYogaSession,
+  type YogaPose,
+  type YogaPoseSession,
+  type InsertYogaPoseSession,
   type NutritionPlan,
   type InsertNutritionPlan,
   type RoboticsModule,
@@ -56,6 +61,14 @@ export interface IStorage {
   getYogaProgramsByAge(age: number): Promise<YogaProgram[]>;
   saveYogaSession(session: InsertYogaSession): Promise<YogaSession>;
   getYogaSessions(childId: string): Promise<YogaSession[]>;
+  
+  // Yoga poses operations
+  getAllYogaPoses(): Promise<YogaPose[]>;
+  getYogaPosesByAge(age: number): Promise<YogaPose[]>;
+  getYogaPosesByCategory(category: string): Promise<YogaPose[]>;
+  getYogaPose(id: string): Promise<YogaPose | undefined>;
+  saveYogaPoseSession(session: InsertYogaPoseSession): Promise<YogaPoseSession>;
+  getYogaPoseSessions(childId: string): Promise<YogaPoseSession[]>;
   
   // Nutrition operations
   getNutritionPlan(childId: string, weekOf: Date): Promise<NutritionPlan | undefined>;
@@ -196,6 +209,57 @@ export class DatabaseStorage implements IStorage {
       .from(yogaSessions)
       .where(eq(yogaSessions.childId, childId))
       .orderBy(desc(yogaSessions.startedAt));
+  }
+
+  // Yoga poses operations
+  async getAllYogaPoses(): Promise<YogaPose[]> {
+    return await db
+      .select()
+      .from(yogaPoses)
+      .where(eq(yogaPoses.isActive, true));
+  }
+
+  async getYogaPosesByAge(age: number): Promise<YogaPose[]> {
+    return await db
+      .select()
+      .from(yogaPoses)
+      .where(
+        and(
+          eq(yogaPoses.isActive, true),
+          lte(yogaPoses.ageMin, age),
+          gte(yogaPoses.ageMax, age)
+        )
+      );
+  }
+
+  async getYogaPosesByCategory(category: string): Promise<YogaPose[]> {
+    return await db
+      .select()
+      .from(yogaPoses)
+      .where(
+        and(
+          eq(yogaPoses.isActive, true),
+          eq(yogaPoses.developmentCategory, category)
+        )
+      );
+  }
+
+  async getYogaPose(id: string): Promise<YogaPose | undefined> {
+    const [pose] = await db.select().from(yogaPoses).where(eq(yogaPoses.id, id));
+    return pose;
+  }
+
+  async saveYogaPoseSession(session: InsertYogaPoseSession): Promise<YogaPoseSession> {
+    const [newSession] = await db.insert(yogaPoseSessions).values(session).returning();
+    return newSession;
+  }
+
+  async getYogaPoseSessions(childId: string): Promise<YogaPoseSession[]> {
+    return await db
+      .select()
+      .from(yogaPoseSessions)
+      .where(eq(yogaPoseSessions.childId, childId))
+      .orderBy(desc(yogaPoseSessions.completedAt));
   }
 
   // Nutrition operations

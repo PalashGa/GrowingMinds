@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertChildSchema, insertAssessmentResultSchema, insertYogaSessionSchema, insertNutritionPlanSchema, insertGameScoreSchema } from "@shared/schema";
+import { insertChildSchema, insertAssessmentResultSchema, insertYogaSessionSchema, insertYogaPoseSessionSchema, insertNutritionPlanSchema, insertGameScoreSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -138,6 +138,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching yoga sessions:", error);
       res.status(500).json({ message: "Failed to fetch yoga sessions" });
+    }
+  });
+
+  // Yoga poses routes
+  app.get('/api/yoga/poses', async (req, res) => {
+    try {
+      const age = req.query.age ? parseInt(req.query.age as string) : undefined;
+      const category = req.query.category as string | undefined;
+      
+      let poses;
+      if (category) {
+        poses = await storage.getYogaPosesByCategory(category);
+      } else if (age) {
+        poses = await storage.getYogaPosesByAge(age);
+      } else {
+        poses = await storage.getAllYogaPoses();
+      }
+      res.json(poses);
+    } catch (error) {
+      console.error("Error fetching yoga poses:", error);
+      res.status(500).json({ message: "Failed to fetch yoga poses" });
+    }
+  });
+
+  app.get('/api/yoga/poses/:id', async (req, res) => {
+    try {
+      const pose = await storage.getYogaPose(req.params.id);
+      if (!pose) {
+        return res.status(404).json({ message: "Pose not found" });
+      }
+      res.json(pose);
+    } catch (error) {
+      console.error("Error fetching yoga pose:", error);
+      res.status(500).json({ message: "Failed to fetch yoga pose" });
+    }
+  });
+
+  app.post('/api/yoga/pose-sessions', isAuthenticated, async (req: any, res) => {
+    try {
+      const sessionData = insertYogaPoseSessionSchema.parse(req.body);
+      const session = await storage.saveYogaPoseSession(sessionData);
+      res.json(session);
+    } catch (error) {
+      console.error("Error saving yoga pose session:", error);
+      res.status(500).json({ message: "Failed to save yoga pose session" });
+    }
+  });
+
+  app.get('/api/children/:childId/yoga-pose-sessions', isAuthenticated, async (req: any, res) => {
+    try {
+      const sessions = await storage.getYogaPoseSessions(req.params.childId);
+      res.json(sessions);
+    } catch (error) {
+      console.error("Error fetching yoga pose sessions:", error);
+      res.status(500).json({ message: "Failed to fetch yoga pose sessions" });
     }
   });
 
