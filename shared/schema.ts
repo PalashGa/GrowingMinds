@@ -154,6 +154,81 @@ export const nutritionPlans = pgTable("nutrition_plans", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Recipes library
+export const recipes = pgTable("recipes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  category: varchar("category").notNull(), // breakfast, lunch, dinner, snack
+  dietaryType: varchar("dietary_type").notNull().default('vegetarian'), // vegetarian, vegan, non-veg, jain
+  ageMin: integer("age_min").default(5),
+  ageMax: integer("age_max").default(16),
+  prepTime: integer("prep_time"), // minutes
+  cookTime: integer("cook_time"), // minutes
+  servings: integer("servings").default(1),
+  ingredients: jsonb("ingredients").notNull(), // array of {name, quantity, unit}
+  instructions: jsonb("instructions").notNull(), // array of steps
+  nutrition: jsonb("nutrition").notNull(), // {calories, protein, carbs, fats, fiber, vitamins}
+  tags: jsonb("tags"), // ['high-protein', 'low-sugar', 'iron-rich']
+  imageUrl: varchar("image_url"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Nutritional goals for children
+export const nutritionalGoals = pgTable("nutritional_goals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").references(() => children.id).notNull(),
+  dailyCalories: integer("daily_calories"),
+  dailyProtein: integer("daily_protein"), // grams
+  dailyCarbs: integer("daily_carbs"), // grams
+  dailyFats: integer("daily_fats"), // grams
+  dailyFiber: integer("daily_fiber"), // grams
+  dailyWater: integer("daily_water"), // ml
+  vitamins: jsonb("vitamins"), // specific vitamin targets
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Daily nutrition tracking
+export const dailyNutritionTracking = pgTable("daily_nutrition_tracking", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").references(() => children.id).notNull(),
+  date: timestamp("date").notNull(),
+  breakfast: jsonb("breakfast"), // {recipeId, consumed: true/false, notes}
+  lunch: jsonb("lunch"),
+  dinner: jsonb("dinner"),
+  snacks: jsonb("snacks"), // array of snacks
+  waterIntake: integer("water_intake"), // ml
+  totalCalories: integer("total_calories"),
+  totalProtein: integer("total_protein"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Meal preferences for children
+export const mealPreferences = pgTable("meal_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").references(() => children.id).notNull(),
+  dietaryType: varchar("dietary_type").default('vegetarian'), // vegetarian, vegan, non-veg, jain
+  allergies: jsonb("allergies"), // ['nuts', 'dairy', 'gluten']
+  dislikedFoods: jsonb("disliked_foods"), // ['broccoli', 'spinach']
+  favoriteRecipes: jsonb("favorite_recipes"), // array of recipe IDs
+  specialNotes: text("special_notes"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Progress photos for tracking growth
+export const progressPhotos = pgTable("progress_photos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").references(() => children.id).notNull(),
+  photoUrl: varchar("photo_url").notNull(),
+  photoDate: timestamp("photo_date").defaultNow(),
+  weight: integer("weight"), // kg at time of photo
+  height: integer("height"), // cm at time of photo
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Robotics learning modules
 export const roboticsModules = pgTable("robotics_modules", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -244,6 +319,31 @@ export const insertYogaPoseSessionSchema = createInsertSchema(yogaPoseSessions).
   completedAt: true,
 });
 
+export const insertRecipeSchema = createInsertSchema(recipes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMealPreferencesSchema = createInsertSchema(mealPreferences).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const insertProgressPhotoSchema = createInsertSchema(progressPhotos).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertNutritionalGoalsSchema = createInsertSchema(nutritionalGoals).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const insertDailyNutritionTrackingSchema = createInsertSchema(dailyNutritionTracking).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -266,3 +366,13 @@ export type InsertGameScore = z.infer<typeof insertGameScoreSchema>;
 export type YogaPose = typeof yogaPoses.$inferSelect;
 export type YogaPoseSession = typeof yogaPoseSessions.$inferSelect;
 export type InsertYogaPoseSession = z.infer<typeof insertYogaPoseSessionSchema>;
+export type Recipe = typeof recipes.$inferSelect;
+export type InsertRecipe = z.infer<typeof insertRecipeSchema>;
+export type MealPreferences = typeof mealPreferences.$inferSelect;
+export type InsertMealPreferences = z.infer<typeof insertMealPreferencesSchema>;
+export type ProgressPhoto = typeof progressPhotos.$inferSelect;
+export type InsertProgressPhoto = z.infer<typeof insertProgressPhotoSchema>;
+export type NutritionalGoals = typeof nutritionalGoals.$inferSelect;
+export type InsertNutritionalGoals = z.infer<typeof insertNutritionalGoalsSchema>;
+export type DailyNutritionTracking = typeof dailyNutritionTracking.$inferSelect;
+export type InsertDailyNutritionTracking = z.infer<typeof insertDailyNutritionTrackingSchema>;
