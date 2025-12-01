@@ -45,6 +45,8 @@ export const children = pgTable("children", {
   name: varchar("name").notNull(),
   age: integer("age").notNull(),
   dateOfBirth: timestamp("date_of_birth"),
+  height: integer("height"), // in centimeters
+  weight: integer("weight"), // in kilograms
   profileColor: varchar("profile_color").default('#4F46E5'),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -108,6 +110,36 @@ export const yogaSessions = pgTable("yoga_sessions", {
   completedAt: timestamp("completed_at"),
   duration: integer("duration"), // actual duration in minutes
   rating: integer("rating"), // 1-5 stars
+  notes: text("notes"),
+});
+
+// Individual yoga poses with developmental benefits
+export const yogaPoses = pgTable("yoga_poses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  sanskritName: varchar("sanskrit_name"),
+  description: text("description"),
+  instructions: text("instructions"),
+  developmentCategory: varchar("development_category").notNull(), // openness, conscientiousness, extraversion, etc.
+  benefits: jsonb("benefits"), // array of specific benefits
+  ageMin: integer("age_min").notNull().default(5),
+  ageMax: integer("age_max").notNull().default(16),
+  difficulty: varchar("difficulty").notNull().default('beginner'), // beginner, intermediate, advanced
+  duration: integer("duration").default(60), // seconds to hold pose
+  imageUrl: varchar("image_url"),
+  videoUrl: varchar("video_url"),
+  practiceType: varchar("practice_type").default('pose'), // pose or practice/meditation
+  practiceDescription: text("practice_description"), // for associated practices
+  isActive: boolean("is_active").default(true),
+});
+
+// Track individual pose sessions for children
+export const yogaPoseSessions = pgTable("yoga_pose_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  childId: varchar("child_id").references(() => children.id).notNull(),
+  poseId: varchar("pose_id").references(() => yogaPoses.id).notNull(),
+  duration: integer("duration"), // actual seconds held
+  completedAt: timestamp("completed_at").defaultNow(),
   notes: text("notes"),
 });
 
@@ -207,6 +239,11 @@ export const insertGameScoreSchema = createInsertSchema(gameScores).omit({
   playedAt: true,
 });
 
+export const insertYogaPoseSessionSchema = createInsertSchema(yogaPoseSessions).omit({
+  id: true,
+  completedAt: true,
+});
+
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -226,3 +263,6 @@ export type RoboticsProgress = typeof roboticsProgress.$inferSelect;
 export type EducationalGame = typeof educationalGames.$inferSelect;
 export type GameScore = typeof gameScores.$inferSelect;
 export type InsertGameScore = z.infer<typeof insertGameScoreSchema>;
+export type YogaPose = typeof yogaPoses.$inferSelect;
+export type YogaPoseSession = typeof yogaPoseSessions.$inferSelect;
+export type InsertYogaPoseSession = z.infer<typeof insertYogaPoseSessionSchema>;
