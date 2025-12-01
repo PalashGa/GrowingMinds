@@ -30,13 +30,31 @@ Preferred communication style: Simple, everyday language.
 - **Schema Organization**: Shared schema definitions between client and server
 - **Key Entities**:
   - Users (parent accounts with Stripe integration)
-  - Children (linked to parent users)
-  - Assessment types, questions, and results
+  - Children (linked to parent users with height/weight tracking)
+  - Assessment types, questions, and results (5 types: Behavioral, Personality, IQ, Career, Strengths & Weakness)
   - Yoga programs and sessions
+  - Yoga poses (21 comprehensive poses organized by developmental categories)
+  - Yoga pose sessions for tracking individual pose practice
   - Nutrition plans
   - Robotics modules and progress tracking
   - Educational games and scores
 - **Migration Strategy**: Drizzle Kit for schema migrations
+
+### Yoga Poses Feature
+- **21 Comprehensive Poses** organized by developmental benefits:
+  - Openness: Cobra Pose, Wild Thing, Wheel Pose
+  - Conscientiousness: Mountain Pose, Warrior I, Plank Pose
+  - Extraversion: Sun Salutation, Dancer's Pose
+  - Agreeableness: Partner Tree Pose, Heart Opening Pose
+  - Emotional Stability: Child's Pose, Corpse Pose
+  - Logical Reasoning: Eagle Pose, Crow Pose
+  - Problem-Solving: Headstand Prep, Handstand Prep
+  - Verbal Comprehension: Lion's Breath, Humming Bee Breath
+  - Mathematical Skills: Scale Pose, Boat Pose
+  - Working Memory: Sequence Flow
+- **Personalized Recommendations**: Age-appropriate poses based on child's age, height, and weight
+- **Category Filtering**: Browse poses by developmental benefit category
+- **Pose Details**: Sanskrit names, instructions, benefits, difficulty levels, and age ranges
 
 ### Authentication & Authorization
 - **Identity Provider**: Replit OIDC for seamless platform integration
