@@ -11,6 +11,8 @@ import Assessments from "./pages/assessments";
 import AssessmentTest from "./pages/assessment-test";
 import Yoga from "./pages/yoga";
 import Nutrition from "./pages/nutrition";
+import NutritionPlanner from "./pages/nutrition-planner";
+import NutritionRecipes from "./pages/nutrition-recipes";
 import Robotics from "./pages/robotics";
 import Games from "./pages/games";
 import Subscribe from "./pages/subscribe";
@@ -36,6 +38,8 @@ function Router() {
       <Route path="/assessment/:typeId" component={AssessmentTest} />
       <Route path="/yoga" component={Yoga} />
       <Route path="/nutrition" component={Nutrition} />
+      <Route path="/nutrition/planner" component={NutritionPlanner} />
+      <Route path="/nutrition/recipes" component={NutritionRecipes} />
       <Route path="/robotics" component={Robotics} />
       <Route path="/games" component={Games} />
       <Route path="/subscribe" component={Subscribe} />

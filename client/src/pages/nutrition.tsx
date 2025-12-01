@@ -3,26 +3,41 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { Link } from "wouter";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Apple, Calendar as CalendarIcon, User, Plus, CheckCircle, Utensils, Heart, Brain } from "lucide-react";
-import { format } from "date-fns";
-import type { Child, NutritionPlan } from "@shared/schema";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Apple, Calendar, User, Utensils, Droplets, Flame, 
+  ChefHat, Camera, TrendingUp, ArrowRight, Plus,
+  Beef, Salad, Cookie, CheckCircle, Heart, Brain,
+  CalendarDays, BookOpen, Settings
+} from "lucide-react";
+import { format, startOfWeek, addDays } from "date-fns";
+import type { Child } from "@shared/schema";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
-interface MealPlan {
+interface DayMeal {
   day: string;
-  breakfast: string;
-  lunch: string;
-  dinner: string;
-  snacks: string[];
+  date: string;
+  breakfast: { name: string; calories: number; consumed?: boolean };
+  lunch: { name: string; calories: number; consumed?: boolean };
+  dinner: { name: string; calories: number; consumed?: boolean };
+  snacks: { name: string; calories: number; consumed?: boolean }[];
+}
+
+interface NutritionalGoal {
+  name: string;
+  current: number;
+  target: number;
+  unit: string;
+  icon: string;
+  color: string;
 }
 
 export default function Nutrition() {
@@ -30,11 +45,7 @@ export default function Nutrition() {
   const { isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
   const [selectedChildId, setSelectedChildId] = useState<string>("");
-  const [selectedWeek, setSelectedWeek] = useState<Date>(new Date());
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
@@ -55,15 +66,8 @@ export default function Nutrition() {
     retry: false,
   });
 
-  const { data: nutritionPlan, isLoading: planLoading, error: planError } = useQuery<NutritionPlan>({
-    queryKey: ['/api/children', selectedChildId, 'nutrition-plan', selectedWeek.toISOString()],
-    enabled: isAuthenticated && !!selectedChildId,
-    retry: false,
-  });
-
   useEffect(() => {
-    if ((childrenError && isUnauthorizedError(childrenError)) || 
-        (planError && isUnauthorizedError(planError))) {
+    if (childrenError && isUnauthorizedError(childrenError)) {
       toast({
         title: "Unauthorized",
         description: "You are logged out. Logging in again...",
@@ -74,404 +78,615 @@ export default function Nutrition() {
       }, 500);
       return;
     }
-  }, [childrenError, planError, toast]);
+  }, [childrenError, toast]);
 
-  // Auto-select first child if only one exists
   useEffect(() => {
     if (children && children.length === 1 && !selectedChildId) {
       setSelectedChildId(children[0].id);
     }
   }, [children, selectedChildId]);
 
-  const generatePlanMutation = useMutation({
-    mutationFn: async (data: { childId: string; weekOf: Date }) => {
-      const child = children?.find(c => c.id === data.childId);
-      if (!child) throw new Error('Child not found');
-
-      // Generate a sample meal plan based on child's age
-      const sampleMealPlan: MealPlan[] = [
-        {
-          day: "Monday",
-          breakfast: child.age < 10 ? "Whole grain cereal with milk and banana slices" : "Overnight oats with berries and nuts",
-          lunch: "Turkey and avocado wrap with whole wheat tortilla",
-          dinner: "Grilled chicken with sweet potato and steamed broccoli",
-          snacks: ["Apple slices with peanut butter", "Greek yogurt with honey"]
-        },
-        {
-          day: "Tuesday", 
-          breakfast: "Scrambled eggs with whole grain toast",
-          lunch: "Quinoa salad with vegetables and chickpeas",
-          dinner: "Baked salmon with brown rice and green beans",
-          snacks: ["Carrot sticks with hummus", "Mixed berries"]
-        },
-        {
-          day: "Wednesday",
-          breakfast: "Smoothie bowl with spinach, banana, and granola",
-          lunch: "Lentil soup with whole grain bread",
-          dinner: "Lean beef with roasted vegetables and quinoa",
-          snacks: ["Cheese and whole grain crackers", "Orange slices"]
-        },
-        {
-          day: "Thursday",
-          breakfast: "Greek yogurt parfait with fruits and granola",
-          lunch: "Grilled chicken salad with mixed greens",
-          dinner: "Vegetable stir-fry with tofu and brown rice",
-          snacks: ["Trail mix with nuts and dried fruit", "Celery with almond butter"]
-        },
-        {
-          day: "Friday",
-          breakfast: "Whole grain pancakes with fresh berries",
-          lunch: "Bean and vegetable quesadilla",
-          dinner: "Baked cod with sweet potato fries and asparagus",
-          snacks: ["Homemade energy balls", "Cucumber slices"]
-        },
-        {
-          day: "Saturday",
-          breakfast: "Avocado toast with poached egg",
-          lunch: "Homemade pizza with whole wheat crust and vegetables",
-          dinner: "Turkey meatballs with zucchini noodles",
-          snacks: ["Frozen fruit popsicle", "Roasted chickpeas"]
-        },
-        {
-          day: "Sunday",
-          breakfast: "Chia seed pudding with mango",
-          lunch: "Grilled vegetable and hummus wrap",
-          dinner: "Herb-crusted chicken with mashed cauliflower",
-          snacks: ["Baked sweet potato chips", "Smoothie with spinach and fruit"]
-        }
-      ];
-
-      const nutritionalGoals = {
-        calories: child.age < 10 ? "1400-1600 calories" : "1800-2000 calories",
-        protein: "Include protein at every meal",
-        vegetables: "5-7 servings of fruits and vegetables daily",
-        wholegrains: "Choose whole grains over refined grains",
-        hydration: "6-8 glasses of water daily",
-        omega3: "Include fish twice per week for brain development"
-      };
-
-      const response = await apiRequest("POST", "/api/nutrition-plans", {
-        childId: data.childId,
-        weekOf: data.weekOf,
-        meals: sampleMealPlan,
-        goals: nutritionalGoals,
-        notes: `Personalized nutrition plan for ${child.name} (age ${child.age}). Focus on brain development and growth.`
-      });
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/children', selectedChildId, 'nutrition-plan'] });
-      setIsGenerateDialogOpen(false);
-      toast({
-        title: "Nutrition Plan Generated!",
-        description: "Your personalized weekly meal plan has been created successfully.",
-      });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to generate nutrition plan. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
   const selectedChild = children?.find(child => child.id === selectedChildId);
-  const weekStart = new Date(selectedWeek);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
-
-  const handleGeneratePlan = () => {
-    if (!selectedChildId) {
-      toast({
-        title: "Select Child",
-        description: "Please select a child before generating a nutrition plan.",
-        variant: "destructive",
-      });
-      return;
-    }
-    generatePlanMutation.mutate({
-      childId: selectedChildId,
-      weekOf: weekStart,
-    });
+  
+  const calculateNutritionalGoals = (child: Child | undefined): NutritionalGoal[] => {
+    if (!child) return [];
+    const age = child.age;
+    const weight = child.weight || 30;
+    
+    const calorieTarget = age < 8 ? 1400 : age < 12 ? 1800 : 2200;
+    const proteinTarget = Math.round(weight * 1.2);
+    const carbsTarget = age < 8 ? 150 : age < 12 ? 200 : 250;
+    const fatsTarget = age < 8 ? 50 : age < 12 ? 65 : 75;
+    const waterTarget = age < 8 ? 1500 : age < 12 ? 2000 : 2500;
+    
+    return [
+      { name: "Calories", current: Math.round(calorieTarget * 0.65), target: calorieTarget, unit: "kcal", icon: "🔥", color: "bg-orange-500" },
+      { name: "Protein", current: Math.round(proteinTarget * 0.7), target: proteinTarget, unit: "g", icon: "🥩", color: "bg-red-500" },
+      { name: "Carbs", current: Math.round(carbsTarget * 0.6), target: carbsTarget, unit: "g", icon: "🍞", color: "bg-amber-500" },
+      { name: "Fats", current: Math.round(fatsTarget * 0.55), target: fatsTarget, unit: "g", icon: "🥑", color: "bg-green-500" },
+      { name: "Water", current: Math.round(waterTarget * 0.5), target: waterTarget, unit: "ml", icon: "💧", color: "bg-blue-500" },
+      { name: "Fiber", current: 15, target: age < 8 ? 20 : 25, unit: "g", icon: "🥬", color: "bg-emerald-500" },
+    ];
   };
+
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const weeklyMeals: DayMeal[] = [
+    {
+      day: "Monday",
+      date: format(addDays(weekStart, 0), "MMM d"),
+      breakfast: { name: "Oatmeal with Berries & Honey", calories: 320, consumed: true },
+      lunch: { name: "Paneer Tikka Wrap", calories: 450, consumed: true },
+      dinner: { name: "Dal Tadka with Rice", calories: 520, consumed: false },
+      snacks: [{ name: "Apple Slices", calories: 80, consumed: true }, { name: "Milk", calories: 120, consumed: false }]
+    },
+    {
+      day: "Tuesday",
+      date: format(addDays(weekStart, 1), "MMM d"),
+      breakfast: { name: "Masala Dosa with Chutney", calories: 380, consumed: true },
+      lunch: { name: "Rajma Chawal", calories: 480, consumed: true },
+      dinner: { name: "Vegetable Khichdi", calories: 400, consumed: false },
+      snacks: [{ name: "Banana", calories: 100 }, { name: "Buttermilk", calories: 60 }]
+    },
+    {
+      day: "Wednesday",
+      date: format(addDays(weekStart, 2), "MMM d"),
+      breakfast: { name: "Upma with Vegetables", calories: 290, consumed: false },
+      lunch: { name: "Chole with Bhature", calories: 550, consumed: false },
+      dinner: { name: "Mixed Veg Curry with Roti", calories: 480, consumed: false },
+      snacks: [{ name: "Mango Lassi", calories: 150 }, { name: "Almonds", calories: 90 }]
+    },
+    {
+      day: "Thursday",
+      date: format(addDays(weekStart, 3), "MMM d"),
+      breakfast: { name: "Paratha with Curd", calories: 350, consumed: false },
+      lunch: { name: "Palak Paneer with Naan", calories: 520, consumed: false },
+      dinner: { name: "Sambar Rice", calories: 450, consumed: false },
+      snacks: [{ name: "Fruit Chaat", calories: 120 }, { name: "Coconut Water", calories: 50 }]
+    },
+    {
+      day: "Friday",
+      date: format(addDays(weekStart, 4), "MMM d"),
+      breakfast: { name: "Poha with Peanuts", calories: 280, consumed: false },
+      lunch: { name: "Biryani (Veg/Non-veg)", calories: 580, consumed: false },
+      dinner: { name: "Kadai Paneer with Roti", calories: 500, consumed: false },
+      snacks: [{ name: "Sprout Salad", calories: 100 }, { name: "Fresh Juice", calories: 130 }]
+    },
+  ];
+
+  const quickRecipes = [
+    { name: "Paneer Butter Masala", time: "30 min", difficulty: "Easy", category: "lunch", emoji: "🧀" },
+    { name: "Vegetable Pulao", time: "25 min", difficulty: "Easy", category: "dinner", emoji: "🍚" },
+    { name: "Masala Omelette", time: "10 min", difficulty: "Easy", category: "breakfast", emoji: "🍳" },
+    { name: "Dal Makhani", time: "45 min", difficulty: "Medium", category: "dinner", emoji: "🍲" },
+    { name: "Fruit Smoothie", time: "5 min", difficulty: "Easy", category: "snack", emoji: "🥤" },
+    { name: "Aloo Paratha", time: "20 min", difficulty: "Easy", category: "breakfast", emoji: "🫓" },
+  ];
+
+  const nutritionalGoals = calculateNutritionalGoals(selectedChild);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" data-testid="loading-spinner"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-green-50/50 to-background">
       <Navbar />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center mb-4">
-            <Apple className="h-12 w-12 text-accent mr-4" />
-            <h1 className="text-3xl lg:text-4xl font-bold text-foreground" data-testid="text-nutrition-title">
-              Nutrition Planning
-            </h1>
+        {/* Header with Navigation */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 text-white">
+              <Apple className="h-8 w-8" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Nutrition Dashboard</h1>
+              <p className="text-muted-foreground">Track meals, goals & healthy eating habits</p>
+            </div>
           </div>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Personalized weekly meal plans designed to support your child's growth, brain development, and overall health.
-          </p>
+          
+          <div className="flex flex-wrap gap-2">
+            <Link href="/nutrition/planner">
+              <Button variant="outline" className="gap-2">
+                <CalendarDays className="h-4 w-4" />
+                Meal Planner
+              </Button>
+            </Link>
+            <Link href="/nutrition/recipes">
+              <Button variant="outline" className="gap-2">
+                <BookOpen className="h-4 w-4" />
+                Recipe Library
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        {/* Controls */}
-        <div className="grid md:grid-cols-3 gap-4 mb-8">
-          {/* Child Selection */}
-          <Card data-testid="card-child-selection">
-            <CardHeader>
-              <CardTitle className="flex items-center text-lg">
-                <User className="mr-2 h-5 w-5" />
-                Select Child
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+        {/* Child Selection */}
+        <Card className="mb-6 border-green-200 bg-green-50/30">
+          <CardContent className="py-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5 text-green-600" />
+                <span className="font-medium">Select Child:</span>
+              </div>
               {!children || children.length === 0 ? (
-                <div className="text-center p-4">
-                  <User className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground mb-2">No child profiles found</p>
-                  <Button size="sm" data-testid="button-create-child">Create Profile</Button>
+                <div className="text-muted-foreground">
+                  No child profiles found. <Link href="/dashboard" className="text-primary hover:underline">Create one</Link>
                 </div>
               ) : (
                 <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                  <SelectTrigger data-testid="select-child">
+                  <SelectTrigger className="w-64 bg-white">
                     <SelectValue placeholder="Choose a child" />
                   </SelectTrigger>
                   <SelectContent>
                     {children.map((child) => (
-                      <SelectItem key={child.id} value={child.id} data-testid={`option-child-${child.id}`}>
-                        <div className="flex items-center space-x-2">
+                      <SelectItem key={child.id} value={child.id}>
+                        <div className="flex items-center gap-2">
                           <div 
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: child.profileColor || '#4F46E5' }}
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: child.profileColor || '#22c55e' }}
                           />
-                          <span>{child.name} (Age {child.age})</span>
+                          <span>{child.name}</span>
+                          <span className="text-muted-foreground text-sm">
+                            (Age {child.age}, {child.weight || '—'}kg)
+                          </span>
                         </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Week Selection */}
-          <Card data-testid="card-week-selection">
-            <CardHeader>
-              <CardTitle className="flex items-center text-lg">
-                <CalendarIcon className="mr-2 h-5 w-5" />
-                Select Week
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start" data-testid="button-select-week">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(weekStart, "MMM d, yyyy")}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" data-testid="popover-calendar">
-                  <Calendar
-                    mode="single"
-                    selected={selectedWeek}
-                    onSelect={(date) => {
-                      if (date) {
-                        setSelectedWeek(date);
-                        setIsCalendarOpen(false);
-                      }
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </CardContent>
-          </Card>
-
-          {/* Generate Plan */}
-          <Card data-testid="card-generate-plan">
-            <CardHeader>
-              <CardTitle className="flex items-center text-lg">
-                <Plus className="mr-2 h-5 w-5" />
-                New Plan
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Dialog open={isGenerateDialogOpen} onOpenChange={setIsGenerateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button 
-                    className="w-full" 
-                    disabled={!selectedChildId}
-                    data-testid="button-generate-plan"
-                  >
-                    Generate Plan
-                  </Button>
-                </DialogTrigger>
-                <DialogContent data-testid="dialog-generate-plan">
-                  <DialogHeader>
-                    <DialogTitle>Generate Nutrition Plan</DialogTitle>
-                    <DialogDescription>
-                      Create a personalized weekly meal plan for {selectedChild?.name} starting {format(weekStart, "MMM d, yyyy")}.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="bg-muted/50 p-4 rounded-lg">
-                      <h4 className="font-semibold mb-2">Plan Details:</h4>
-                      <ul className="text-sm text-muted-foreground space-y-1">
-                        <li>• Age-appropriate portions and ingredients</li>
-                        <li>• Focus on brain development and growth</li>
-                        <li>• Balanced nutrition across all meals</li>
-                        <li>• Healthy snack options included</li>
-                      </ul>
-                    </div>
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" onClick={() => setIsGenerateDialogOpen(false)} data-testid="button-cancel">
-                        Cancel
-                      </Button>
-                      <Button 
-                        onClick={handleGeneratePlan}
-                        disabled={generatePlanMutation.isPending}
-                        data-testid="button-confirm-generate"
-                      >
-                        {generatePlanMutation.isPending ? "Generating..." : "Generate Plan"}
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {selectedChildId && (
-          <>
-            {planLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : !nutritionPlan ? (
-              <Card className="text-center p-8" data-testid="card-no-plan">
+          <Tabs defaultValue="overview" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+              <TabsTrigger value="overview" className="gap-2">
+                <TrendingUp className="h-4 w-4" />
+                <span className="hidden sm:inline">Overview</span>
+              </TabsTrigger>
+              <TabsTrigger value="meals" className="gap-2">
+                <Utensils className="h-4 w-4" />
+                <span className="hidden sm:inline">This Week</span>
+              </TabsTrigger>
+              <TabsTrigger value="recipes" className="gap-2">
+                <ChefHat className="h-4 w-4" />
+                <span className="hidden sm:inline">Recipes</span>
+              </TabsTrigger>
+              <TabsTrigger value="progress" className="gap-2">
+                <Camera className="h-4 w-4" />
+                <span className="hidden sm:inline">Progress</span>
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Overview Tab */}
+            <TabsContent value="overview" className="space-y-6">
+              {/* Nutritional Goals */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Flame className="h-5 w-5 text-orange-500" />
+                    Today's Nutritional Goals
+                  </CardTitle>
+                  <CardDescription>
+                    Track {selectedChild?.name}'s daily nutrition intake based on age and weight
+                  </CardDescription>
+                </CardHeader>
                 <CardContent>
-                  <Utensils className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No nutrition plan found</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Generate a personalized meal plan for {selectedChild?.name} for the week of {format(weekStart, "MMM d, yyyy")}.
-                  </p>
-                  <Button onClick={() => setIsGenerateDialogOpen(true)} data-testid="button-create-first-plan">
-                    Create Your First Plan
-                  </Button>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {nutritionalGoals.map((goal) => (
+                      <div key={goal.name} className="p-4 rounded-xl bg-muted/30 border">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{goal.icon}</span>
+                            <span className="font-medium">{goal.name}</span>
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {goal.current}/{goal.target} {goal.unit}
+                          </span>
+                        </div>
+                        <Progress 
+                          value={(goal.current / goal.target) * 100} 
+                          className={`h-2 ${goal.color}`}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {Math.round((goal.current / goal.target) * 100)}% of daily goal
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
-            ) : (
-              <>
-                {/* Plan Overview */}
-                <Card className="mb-8" data-testid="card-plan-overview">
+
+              {/* Today's Meals Summary */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <Card>
                   <CardHeader>
-                    <CardTitle>Nutrition Plan for {selectedChild?.name}</CardTitle>
-                    <CardDescription>
-                      Week of {format(weekStart, "MMMM d, yyyy")} • {nutritionPlan.notes || 'No notes'}
-                    </CardDescription>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-blue-500" />
+                      Today's Meals
+                    </CardTitle>
+                    <CardDescription>{format(new Date(), "EEEE, MMMM d, yyyy")}</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    {nutritionPlan.goals && (
-                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {Object.entries((nutritionPlan.goals as Record<string, string>) || {}).map(([key, value]) => (
-                          <div key={key} className="flex items-start space-x-2" data-testid={`goal-${key}`}>
-                            <CheckCircle className="h-4 w-4 text-secondary mt-0.5 flex-shrink-0" />
+                  <CardContent className="space-y-3">
+                    {weeklyMeals[0] && (
+                      <>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-amber-50 border border-amber-200">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">🌅</span>
                             <div>
-                              <p className="font-medium text-sm capitalize">{key.replace(/([A-Z])/g, ' $1')}</p>
-                              <p className="text-xs text-muted-foreground">{value}</p>
+                              <p className="font-medium">Breakfast</p>
+                              <p className="text-sm text-muted-foreground">{weeklyMeals[0].breakfast.name}</p>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                          <div className="text-right">
+                            <Badge variant={weeklyMeals[0].breakfast.consumed ? "default" : "outline"}>
+                              {weeklyMeals[0].breakfast.consumed ? "✓ Done" : "Pending"}
+                            </Badge>
+                            <p className="text-xs text-muted-foreground mt-1">{weeklyMeals[0].breakfast.calories} kcal</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-orange-50 border border-orange-200">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">☀️</span>
+                            <div>
+                              <p className="font-medium">Lunch</p>
+                              <p className="text-sm text-muted-foreground">{weeklyMeals[0].lunch.name}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant={weeklyMeals[0].lunch.consumed ? "default" : "outline"}>
+                              {weeklyMeals[0].lunch.consumed ? "✓ Done" : "Pending"}
+                            </Badge>
+                            <p className="text-xs text-muted-foreground mt-1">{weeklyMeals[0].lunch.calories} kcal</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-indigo-50 border border-indigo-200">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">🌙</span>
+                            <div>
+                              <p className="font-medium">Dinner</p>
+                              <p className="text-sm text-muted-foreground">{weeklyMeals[0].dinner.name}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant={weeklyMeals[0].dinner.consumed ? "default" : "outline"}>
+                              {weeklyMeals[0].dinner.consumed ? "✓ Done" : "Pending"}
+                            </Badge>
+                            <p className="text-xs text-muted-foreground mt-1">{weeklyMeals[0].dinner.calories} kcal</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 border border-green-200">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">🍎</span>
+                            <div>
+                              <p className="font-medium">Snacks</p>
+                              <p className="text-sm text-muted-foreground">
+                                {weeklyMeals[0].snacks.map(s => s.name).join(", ")}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">
+                              {weeklyMeals[0].snacks.reduce((a, b) => a + b.calories, 0)} kcal
+                            </p>
+                          </div>
+                        </div>
+                      </>
                     )}
                   </CardContent>
                 </Card>
 
-                {/* Weekly Meal Plan */}
-                <div className="grid gap-6 mb-8">
-                  {nutritionPlan.meals && ((nutritionPlan.meals as MealPlan[]) || []).map((dayPlan, index) => (
-                    <Card key={index} data-testid={`card-day-${dayPlan.day.toLowerCase()}`}>
-                      <CardHeader>
-                        <CardTitle className="flex items-center justify-between">
-                          <span>{dayPlan.day}</span>
-                          <Badge variant="outline" data-testid={`badge-day-${index}`}>Day {index + 1}</Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                          <div data-testid={`breakfast-${index}`}>
-                            <h4 className="font-semibold text-sm mb-2 flex items-center">
-                              <span className="w-2 h-2 bg-accent rounded-full mr-2"></span>
-                              Breakfast
-                            </h4>
-                            <p className="text-sm text-muted-foreground">{dayPlan.breakfast}</p>
+                {/* Hydration Tracker */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Droplets className="h-5 w-5 text-blue-500" />
+                      Hydration Tracker
+                    </CardTitle>
+                    <CardDescription>Daily water intake goal</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <div className="relative w-32 h-32 mb-4">
+                        <svg className="w-full h-full transform -rotate-90">
+                          <circle
+                            cx="64"
+                            cy="64"
+                            r="56"
+                            stroke="#e5e7eb"
+                            strokeWidth="12"
+                            fill="none"
+                          />
+                          <circle
+                            cx="64"
+                            cy="64"
+                            r="56"
+                            stroke="#3b82f6"
+                            strokeWidth="12"
+                            fill="none"
+                            strokeDasharray={`${(50 / 100) * 352} 352`}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-3xl">💧</span>
+                          <span className="text-lg font-bold">50%</span>
+                        </div>
+                      </div>
+                      <p className="text-lg font-medium">1000 / 2000 ml</p>
+                      <p className="text-sm text-muted-foreground">5 glasses of 8</p>
+                      <div className="flex gap-2 mt-4">
+                        {[...Array(8)].map((_, i) => (
+                          <div
+                            key={i}
+                            className={`w-6 h-8 rounded-b-lg border-2 ${
+                              i < 5 ? 'bg-blue-400 border-blue-500' : 'bg-gray-100 border-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Quick Links */}
+              <div className="grid md:grid-cols-3 gap-4">
+                <Link href="/nutrition/planner">
+                  <Card className="hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                    <CardContent className="p-6 flex items-center gap-4">
+                      <div className="p-3 rounded-xl bg-blue-500 text-white">
+                        <CalendarDays className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold">Meal Planner</h3>
+                        <p className="text-sm text-muted-foreground">Plan weekly meals</p>
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-blue-500" />
+                    </CardContent>
+                  </Card>
+                </Link>
+                <Link href="/nutrition/recipes">
+                  <Card className="hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+                    <CardContent className="p-6 flex items-center gap-4">
+                      <div className="p-3 rounded-xl bg-orange-500 text-white">
+                        <ChefHat className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold">Recipe Library</h3>
+                        <p className="text-sm text-muted-foreground">Browse healthy recipes</p>
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-orange-500" />
+                    </CardContent>
+                  </Card>
+                </Link>
+                <Card className="hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                  <CardContent className="p-6 flex items-center gap-4">
+                    <div className="p-3 rounded-xl bg-purple-500 text-white">
+                      <Settings className="h-6 w-6" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Preferences</h3>
+                      <p className="text-sm text-muted-foreground">Set diet preferences</p>
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-purple-500" />
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* Weekly Meals Tab */}
+            <TabsContent value="meals" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <CardTitle>This Week's Meal Plan</CardTitle>
+                      <CardDescription>
+                        Week of {format(weekStart, "MMMM d")} - {format(addDays(weekStart, 4), "MMMM d, yyyy")}
+                      </CardDescription>
+                    </div>
+                    <Link href="/nutrition/planner">
+                      <Button className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        Edit Plan
+                      </Button>
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {weeklyMeals.map((day, index) => (
+                      <div key={index} className="p-4 rounded-xl border bg-card hover:bg-muted/30 transition-colors">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center font-bold text-primary">
+                              {day.day.slice(0, 2)}
+                            </div>
+                            <div>
+                              <p className="font-medium">{day.day}</p>
+                              <p className="text-sm text-muted-foreground">{day.date}</p>
+                            </div>
                           </div>
-                          <div data-testid={`lunch-${index}`}>
-                            <h4 className="font-semibold text-sm mb-2 flex items-center">
-                              <span className="w-2 h-2 bg-primary rounded-full mr-2"></span>
-                              Lunch
-                            </h4>
-                            <p className="text-sm text-muted-foreground">{dayPlan.lunch}</p>
+                          <Badge variant="outline">
+                            {day.breakfast.calories + day.lunch.calories + day.dinner.calories + 
+                             day.snacks.reduce((a, b) => a + b.calories, 0)} kcal
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                          <div className="p-2 rounded-lg bg-amber-50 border border-amber-100">
+                            <p className="text-xs text-amber-600 font-medium mb-1">Breakfast</p>
+                            <p className="line-clamp-1">{day.breakfast.name}</p>
                           </div>
-                          <div data-testid={`dinner-${index}`}>
-                            <h4 className="font-semibold text-sm mb-2 flex items-center">
-                              <span className="w-2 h-2 bg-secondary rounded-full mr-2"></span>
-                              Dinner
-                            </h4>
-                            <p className="text-sm text-muted-foreground">{dayPlan.dinner}</p>
+                          <div className="p-2 rounded-lg bg-orange-50 border border-orange-100">
+                            <p className="text-xs text-orange-600 font-medium mb-1">Lunch</p>
+                            <p className="line-clamp-1">{day.lunch.name}</p>
                           </div>
-                          <div data-testid={`snacks-${index}`}>
-                            <h4 className="font-semibold text-sm mb-2 flex items-center">
-                              <span className="w-2 h-2 bg-accent/60 rounded-full mr-2"></span>
-                              Snacks
-                            </h4>
-                            <ul className="text-sm text-muted-foreground space-y-1">
-                              {dayPlan.snacks.map((snack, snackIndex) => (
-                                <li key={snackIndex}>• {snack}</li>
-                              ))}
-                            </ul>
+                          <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-100">
+                            <p className="text-xs text-indigo-600 font-medium mb-1">Dinner</p>
+                            <p className="line-clamp-1">{day.dinner.name}</p>
+                          </div>
+                          <div className="p-2 rounded-lg bg-green-50 border border-green-100">
+                            <p className="text-xs text-green-600 font-medium mb-1">Snacks</p>
+                            <p className="line-clamp-1">{day.snacks.map(s => s.name).join(", ")}</p>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </>
-            )}
-          </>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Quick Recipes Tab */}
+            <TabsContent value="recipes" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <CardTitle>Quick Recipes</CardTitle>
+                      <CardDescription>Easy-to-make healthy meals for your child</CardDescription>
+                    </div>
+                    <Link href="/nutrition/recipes">
+                      <Button variant="outline" className="gap-2">
+                        View All Recipes
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {quickRecipes.map((recipe, index) => (
+                      <Link href="/nutrition/recipes" key={index}>
+                        <div className="p-4 rounded-xl border bg-card hover:shadow-lg transition-all cursor-pointer group">
+                          <div className="flex items-start justify-between mb-3">
+                            <span className="text-4xl">{recipe.emoji}</span>
+                            <Badge variant="outline" className="capitalize">{recipe.category}</Badge>
+                          </div>
+                          <h3 className="font-semibold mb-2 group-hover:text-primary transition-colors">
+                            {recipe.name}
+                          </h3>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span>⏱️ {recipe.time}</span>
+                            <span>📊 {recipe.difficulty}</span>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Progress Photos Tab */}
+            <TabsContent value="progress" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Camera className="h-5 w-5 text-purple-500" />
+                    Growth Progress Photos
+                  </CardTitle>
+                  <CardDescription>
+                    Upload weekly photos to track {selectedChild?.name}'s growth and health improvement
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-xl p-8 text-center">
+                    <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
+                      <Camera className="h-8 w-8 text-purple-500" />
+                    </div>
+                    <h3 className="font-semibold mb-2">Upload Progress Photo</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Track your child's growth by uploading weekly photos
+                    </p>
+                    <Button className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Upload Photo
+                    </Button>
+                  </div>
+
+                  <div className="mt-6">
+                    <h4 className="font-medium mb-4">Recent Photos</h4>
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+                      {[...Array(6)].map((_, i) => (
+                        <div key={i} className="aspect-square rounded-lg bg-muted flex items-center justify-center">
+                          <Camera className="h-6 w-6 text-muted-foreground/50" />
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-sm text-muted-foreground text-center mt-4">
+                      No photos uploaded yet. Start tracking {selectedChild?.name}'s progress today!
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Growth Stats */}
+              <div className="grid md:grid-cols-3 gap-4">
+                <Card>
+                  <CardContent className="pt-6 text-center">
+                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-3">
+                      <TrendingUp className="h-6 w-6 text-blue-500" />
+                    </div>
+                    <p className="text-2xl font-bold">{selectedChild?.height || '—'} cm</p>
+                    <p className="text-sm text-muted-foreground">Current Height</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6 text-center">
+                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
+                      <Beef className="h-6 w-6 text-green-500" />
+                    </div>
+                    <p className="text-2xl font-bold">{selectedChild?.weight || '—'} kg</p>
+                    <p className="text-sm text-muted-foreground">Current Weight</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6 text-center">
+                    <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-3">
+                      <Heart className="h-6 w-6 text-purple-500" />
+                    </div>
+                    <p className="text-2xl font-bold">{selectedChild?.age || '—'} yrs</p>
+                    <p className="text-sm text-muted-foreground">Age</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {!selectedChildId && children && children.length > 0 && (
+          <Card className="text-center p-8">
+            <CardContent>
+              <User className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Select a Child</h3>
+              <p className="text-muted-foreground">
+                Choose a child profile above to view their nutrition dashboard
+              </p>
+            </CardContent>
+          </Card>
         )}
 
         {/* Benefits Section */}
-        <div className="bg-muted/30 rounded-2xl p-8">
+        <div className="mt-12 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-8">
           <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
-            Why Nutrition Matters for Development
+            Why Nutrition Matters for Child Development 🌱
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Brain className="h-8 w-8 text-accent" />
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Brain className="h-8 w-8 text-orange-500" />
               </div>
               <h3 className="font-semibold mb-2">Brain Development</h3>
               <p className="text-sm text-muted-foreground">
@@ -479,8 +694,8 @@ export default function Nutrition() {
               </p>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Heart className="h-8 w-8 text-secondary" />
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Heart className="h-8 w-8 text-red-500" />
               </div>
               <h3 className="font-semibold mb-2">Physical Growth</h3>
               <p className="text-sm text-muted-foreground">
@@ -488,8 +703,8 @@ export default function Nutrition() {
               </p>
             </div>
             <div className="text-center">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="h-8 w-8 text-primary" />
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="h-8 w-8 text-green-500" />
               </div>
               <h3 className="font-semibold mb-2">Healthy Habits</h3>
               <p className="text-sm text-muted-foreground">
