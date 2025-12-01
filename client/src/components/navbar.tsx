@@ -27,7 +27,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-8">
             {isAuthenticated ? (
               <>
-                <Link href="/" className={`transition-colors ${location === '/' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`} data-testid="link-home-nav">
+                <Link href="/home" className={`transition-colors ${location === '/home' || location === '/' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`} data-testid="link-home-nav">
                   Home
                 </Link>
                 <Link href="/dashboard" className={`transition-colors ${location === '/dashboard' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`} data-testid="link-dashboard">
@@ -92,7 +92,7 @@ export default function Navbar() {
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               {isAuthenticated ? (
                 <>
-                  <Link href="/" className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-primary" data-testid="mobile-link-home">
+                  <Link href="/home" className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-primary" data-testid="mobile-link-home">
                     Home
                   </Link>
                   <Link href="/dashboard" className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-primary" data-testid="mobile-link-dashboard">

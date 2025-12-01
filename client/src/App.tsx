@@ -30,6 +30,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={isAuthenticated ? Home : Landing} />
+      <Route path="/home" component={Home} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/assessments" component={Assessments} />
       <Route path="/assessment/:typeId" component={AssessmentTest} />
