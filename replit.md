@@ -35,7 +35,11 @@ Preferred communication style: Simple, everyday language.
   - Yoga programs and sessions
   - Yoga poses (21 comprehensive poses organized by developmental categories)
   - Yoga pose sessions for tracking individual pose practice
-  - Nutrition plans
+  - Nutrition plans and daily tracking
+  - Recipes library with nutrition information
+  - Nutritional goals per child
+  - Meal preferences (dietary type, allergies, dislikes)
+  - Progress photos for growth tracking
   - Robotics modules and progress tracking
   - Educational games and scores
 - **Migration Strategy**: Drizzle Kit for schema migrations
@@ -60,6 +64,38 @@ Preferred communication style: Simple, everyday language.
   - Step-by-Step Guidance: Navigate through instructions with previous/next controls
   - Visual Progress Tracking: Current step highlighting and completion indicators
 - **Child-Friendly UI**: Colorful gradients, emojis, and engaging visual design
+
+### Nutrition Planning System
+- **Three Main Sections**:
+  - Nutrition Dashboard (/nutrition): Overview with meal plans, nutritional goals, recipe access, progress photos
+  - Meal Planner (/nutrition/planner): Weekly calendar with drag-and-drop meal planning
+  - Recipe Library (/nutrition/recipes): Searchable database with filters and detailed recipes
+
+- **Nutrition Dashboard Features**:
+  - Current week's meal plan with quick view of daily meals
+  - Nutritional goals tracking (calories, protein, carbs, fats, water, fiber)
+  - Goals calculated based on child's age and weight
+  - Hydration tracker with visual progress
+  - Quick access to recipes and meal planner
+  - Progress photos upload for growth tracking
+
+- **Meal Planner Features**:
+  - Weekly calendar view (Monday-Sunday)
+  - Drag-and-drop meals from library to calendar
+  - Meal categories: Breakfast, Lunch, Dinner, Snacks
+  - Nutritional information per meal
+  - Add custom meals functionality
+  - Family preference settings (veg/non-veg, allergies, dislikes)
+  - Week navigation (previous/next)
+
+- **Recipe Library Features**:
+  - Searchable database of healthy recipes
+  - Filters: Category, Dietary type (Veg/Vegan/Non-veg/Jain), Difficulty
+  - Tag-based browsing (high-protein, iron-rich, brain-food, etc.)
+  - Detailed recipe view with ingredients and step-by-step instructions
+  - Nutrition information per serving (calories, protein, carbs, fats, fiber)
+  - Favorites system
+  - Age-appropriate recommendations (5-16 years)
 
 ### Authentication & Authorization
 - **Identity Provider**: Replit OIDC for seamless platform integration
