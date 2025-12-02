@@ -52,6 +52,7 @@ export interface IStorage {
   
   // Assessment operations
   getAssessmentTypes(): Promise<AssessmentType[]>;
+  getAssessmentType(id: string): Promise<AssessmentType | undefined>;
   getAssessmentTypesByAge(age: number): Promise<AssessmentType[]>;
   getAssessmentQuestions(assessmentTypeId: string): Promise<AssessmentQuestion[]>;
   saveAssessmentResult(result: InsertAssessmentResult): Promise<AssessmentResult>;
@@ -148,6 +149,11 @@ export class DatabaseStorage implements IStorage {
   // Assessment operations
   async getAssessmentTypes(): Promise<AssessmentType[]> {
     return await db.select().from(assessmentTypes).where(eq(assessmentTypes.isActive, true));
+  }
+
+  async getAssessmentType(id: string): Promise<AssessmentType | undefined> {
+    const [assessmentType] = await db.select().from(assessmentTypes).where(eq(assessmentTypes.id, id));
+    return assessmentType;
   }
 
   async getAssessmentTypesByAge(age: number): Promise<AssessmentType[]> {

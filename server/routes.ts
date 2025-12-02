@@ -77,6 +77,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/assessments/types/:typeId', async (req, res) => {
+    try {
+      const assessmentType = await storage.getAssessmentType(req.params.typeId);
+      if (!assessmentType) {
+        return res.status(404).json({ message: "Assessment type not found" });
+      }
+      res.json(assessmentType);
+    } catch (error) {
+      console.error("Error fetching assessment type:", error);
+      res.status(500).json({ message: "Failed to fetch assessment type" });
+    }
+  });
+
   app.get('/api/assessments/:typeId/questions', async (req, res) => {
     try {
       const questions = await storage.getAssessmentQuestions(req.params.typeId);
