@@ -30,8 +30,8 @@ export default function Navbar() {
                 <Link href="/home" className={`transition-colors ${location === '/home' || location === '/' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`} data-testid="link-home-nav">
                   Home
                 </Link>
-                <Link href="/dashboard" className={`transition-colors ${location === '/dashboard' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`} data-testid="link-dashboard">
-                  Dashboard
+                <Link href="/parent-support" className={`transition-colors ${location === '/parent-support' ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-primary'}`} data-testid="link-parent-support">
+                  Parent Support
                 </Link>
                 <Link href="/assessments" className={`transition-colors ${location === '/assessments' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`} data-testid="link-assessments">
                   Assessments
@@ -95,8 +95,8 @@ export default function Navbar() {
                   <Link href="/home" className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-primary" data-testid="mobile-link-home">
                     Home
                   </Link>
-                  <Link href="/dashboard" className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-primary" data-testid="mobile-link-dashboard">
-                    Dashboard
+                  <Link href="/parent-support" className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-primary" data-testid="mobile-link-parent-support">
+                    Parent Support
                   </Link>
                   <Link href="/assessments" className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-primary" data-testid="mobile-link-assessments">
                     Assessments

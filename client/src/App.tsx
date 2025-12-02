@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Landing from "./pages/landing";
 import Home from "./pages/home";
 import Dashboard from "./pages/dashboard";
+import ParentSupport from "./pages/parent-support";
 import Assessments from "./pages/assessments";
 import AssessmentTest from "./pages/assessment-test";
 import Yoga from "./pages/yoga";
@@ -34,6 +35,7 @@ function Router() {
       <Route path="/" component={isAuthenticated ? Home : Landing} />
       <Route path="/home" component={Home} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/parent-support" component={ParentSupport} />
       <Route path="/assessments" component={Assessments} />
       <Route path="/assessment/:typeId" component={AssessmentTest} />
       <Route path="/yoga" component={Yoga} />
