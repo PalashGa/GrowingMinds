@@ -38,6 +38,14 @@ const selectedButtonColors: Record<string, { bg: string; text: string; border: s
   'Always': { bg: 'bg-green-500', text: 'text-white', border: 'border-green-600' },
 };
 
+// Colorful options for multiple choice questions (A, B, C, D)
+const multipleChoiceColors = [
+  { bg: 'bg-blue-50', hover: 'hover:bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', selected: 'bg-blue-500' },
+  { bg: 'bg-purple-50', hover: 'hover:bg-purple-100', text: 'text-purple-700', border: 'border-purple-200', selected: 'bg-purple-500' },
+  { bg: 'bg-teal-50', hover: 'hover:bg-teal-100', text: 'text-teal-700', border: 'border-teal-200', selected: 'bg-teal-500' },
+  { bg: 'bg-pink-50', hover: 'hover:bg-pink-100', text: 'text-pink-700', border: 'border-pink-200', selected: 'bg-pink-500' },
+];
+
 export default function AssessmentForm({
   question,
   answer,
@@ -76,22 +84,29 @@ export default function AssessmentForm({
     switch (question.questionType) {
       case 'multiple_choice': {
         const options = question.options as string[] | undefined;
+        const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
         return (
           <div className="space-y-3">
             {options && options.map((option: string, index: number) => {
               const isSelected = answer === option;
+              const colors = multipleChoiceColors[index % multipleChoiceColors.length];
               return (
                 <button
                   key={index}
                   onClick={() => handleRadioChange(option)}
-                  className={`w-full p-4 rounded-xl border-2 text-left font-medium transition-all duration-200 ${
+                  className={`w-full p-4 rounded-xl border-2 text-left font-medium transition-all duration-200 flex items-center gap-3 ${
                     isSelected
-                      ? 'bg-primary text-white border-primary shadow-lg scale-[1.02]'
-                      : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200 hover:border-gray-300'
+                      ? `${colors.selected} text-white border-transparent shadow-lg scale-[1.02]`
+                      : `${colors.bg} ${colors.hover} ${colors.text} ${colors.border}`
                   }`}
                   data-testid={`option-${index}`}
                 >
-                  {option}
+                  <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                    isSelected ? 'bg-white/20' : 'bg-white shadow-sm'
+                  }`}>
+                    {optionLabels[index]}
+                  </span>
+                  <span className="flex-1">{option}</span>
                 </button>
               );
             })}
