@@ -44,7 +44,14 @@ export default function ParentSupport() {
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const [isAddChildOpen, setIsAddChildOpen] = useState(false);
-  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(() => {
+    return localStorage.getItem('selectedChildId');
+  });
+
+  const handleChildSelect = (childId: string) => {
+    setSelectedChildId(childId);
+    localStorage.setItem('selectedChildId', childId);
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -94,7 +101,12 @@ export default function ParentSupport() {
 
   useEffect(() => {
     if (children && children.length > 0 && !selectedChildId) {
-      setSelectedChildId(children[0].id);
+      const savedChildId = localStorage.getItem('selectedChildId');
+      if (savedChildId && children.find(c => c.id === savedChildId)) {
+        setSelectedChildId(savedChildId);
+      } else {
+        handleChildSelect(children[0].id);
+      }
     }
   }, [children, selectedChildId]);
 
@@ -370,7 +382,7 @@ export default function ParentSupport() {
                       ? 'ring-2 ring-purple-500 shadow-lg' 
                       : 'hover:scale-[1.02]'
                   }`}
-                  onClick={() => setSelectedChildId(child.id)}
+                  onClick={() => handleChildSelect(child.id)}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">

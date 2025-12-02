@@ -63,10 +63,17 @@ export default function Games() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedChildId, setSelectedChildId] = useState<string>("");
+  const [selectedChildId, setSelectedChildId] = useState<string>(() => {
+    return localStorage.getItem('selectedChildId') || "";
+  });
   const [selectedCategory, setSelectedCategory] = useState<GameCategory | "all">("all");
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  const handleChildSelect = (childId: string) => {
+    setSelectedChildId(childId);
+    localStorage.setItem('selectedChildId', childId);
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -110,8 +117,13 @@ export default function Games() {
   }, [childrenError, scoresError, toast]);
 
   useEffect(() => {
-    if (children && children.length === 1 && !selectedChildId) {
-      setSelectedChildId(children[0].id);
+    if (children && children.length > 0 && !selectedChildId) {
+      const savedChildId = localStorage.getItem('selectedChildId');
+      if (savedChildId && children.find(c => c.id === savedChildId)) {
+        setSelectedChildId(savedChildId);
+      } else {
+        handleChildSelect(children[0].id);
+      }
     }
   }, [children, selectedChildId]);
 
@@ -344,7 +356,7 @@ export default function Games() {
                   <Button variant="outline">Create Child Profile</Button>
                 </div>
               ) : (
-                <Select value={selectedChildId} onValueChange={setSelectedChildId}>
+                <Select value={selectedChildId} onValueChange={handleChildSelect}>
                   <SelectTrigger>
                     <SelectValue placeholder="Choose a child" />
                   </SelectTrigger>
