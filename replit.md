@@ -84,6 +84,65 @@ Preferred communication style: Simple, everyday language.
   - Healthy Choices: Health education quiz game
   - Zen Garden: Relaxation and creativity builder
 
+### Robotics Learning System
+- **Target Audience**: Kids aged 8-16 years
+- **Core Concept**: Robotics = Machines + Sensors + Coding + Creativity
+
+- **7 Educational Modules**:
+
+1. **What Is a Robot?**
+   - Definition of robots and smart machines
+   - Examples: vacuum robots, drones, robot toys, factory robots
+   - Fun facts and interactive quizzes
+
+2. **Robot Parts**
+   - Sensors (eyes & ears of the robot)
+   - Motors (robot's muscles)
+   - Battery (robot's energy)
+   - Wheels & Arms (movement and manipulation)
+   - Brain/Microcontroller (Arduino, Raspberry Pi)
+
+3. **How Robots Move**
+   - How wheels turn with motors
+   - Motor mechanics and electricity
+   - Line following using sensors
+   - Movement commands: forward, backward, turn, spin
+
+4. **Sensors - Robot's Senses**
+   - Light sensor (like our eyes)
+   - Sound sensor (like our ears)
+   - Touch sensor (like our skin)
+   - Distance sensor (judging distance)
+   - Temperature sensor (hot/cold detection)
+
+5. **Basics of Coding**
+   - Simple commands: move forward, turn, stop
+   - Obstacle detection and path following
+   - Block-based programming (Scratch, ages 5-10)
+   - Python programming (ages 10+)
+   - Arduino C++ (ages 12+)
+
+6. **Real-Life Uses of Robots**
+   - Robots in hospitals (surgery, medicine delivery)
+   - Robots in space (Mars rovers, satellite repair)
+   - Robots in homes (vacuum, smart assistants)
+   - Robots in industries (assembly, welding, packaging)
+   - Future careers in robotics
+
+7. **Mini Robotics Activities**
+   - Build a Cardboard Robot
+   - Human Robot Game
+   - Draw a Robot Blueprint
+   - Sensor Scavenger Hunt
+   - Online coding tools: Scratch, Code.org, Tinkercad
+
+- **Module Features**:
+  - Interactive content with visual examples
+  - Step-by-step instructions
+  - Quizzes and challenges
+  - Progress tracking per child
+  - Age-appropriate difficulty levels
+
 - **Game Features**:
   - 5 Difficulty Levels per game (Easy to Master)
   - Lives/streak system for engagement
