@@ -29,6 +29,7 @@ export default function AssessmentTest() {
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [isStarted, setIsStarted] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>("");
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -128,8 +129,16 @@ export default function AssessmentTest() {
     }));
   };
 
+  // Check if this is the IQ test (has age group filters)
+  const isIQTest = assessmentType?.name === 'iq';
+  
+  // Filter questions based on selected age group for IQ test
+  const filteredQuestions = isIQTest && selectedAgeGroup && questions
+    ? questions.filter(q => q.category?.startsWith(selectedAgeGroup))
+    : questions;
+
   const handleNext = () => {
-    if (questions && currentQuestionIndex < questions.length - 1) {
+    if (filteredQuestions && currentQuestionIndex < filteredQuestions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
     } else {
       handleSubmit();
@@ -147,9 +156,10 @@ export default function AssessmentTest() {
 
     // Calculate basic scores (this would be more sophisticated in a real app)
     const scores = {
-      totalQuestions: questions?.length || 0,
+      totalQuestions: filteredQuestions?.length || 0,
       answeredQuestions: Object.keys(answers).length,
-      completionRate: ((Object.keys(answers).length / (questions?.length || 1)) * 100).toFixed(1)
+      completionRate: ((Object.keys(answers).length / (filteredQuestions?.length || 1)) * 100).toFixed(1),
+      ageGroup: isIQTest ? selectedAgeGroup : undefined
     };
 
     const resultData = {
@@ -199,8 +209,8 @@ export default function AssessmentTest() {
   }
 
   const selectedChild = children?.find(child => child.id === selectedChildId);
-  const currentQuestion = questions?.[currentQuestionIndex];
-  const progress = questions ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
+  const currentQuestion = filteredQuestions?.[currentQuestionIndex];
+  const progress = filteredQuestions ? ((currentQuestionIndex + 1) / filteredQuestions.length) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -304,14 +314,43 @@ export default function AssessmentTest() {
                 )}
               </div>
 
+              {/* Age Group Selection for IQ Test */}
+              {isIQTest && selectedChildId && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Select Age Group</label>
+                  <Select value={selectedAgeGroup} onValueChange={setSelectedAgeGroup}>
+                    <SelectTrigger data-testid="select-age-group">
+                      <SelectValue placeholder="Choose the appropriate age group for the test" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Ages 5-10">
+                        <div className="flex items-center space-x-2">
+                          <span>🧒 Ages 5-10</span>
+                          <span className="text-muted-foreground text-xs">(Basic logic, patterns, memory)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Ages 11-18">
+                        <div className="flex items-center space-x-2">
+                          <span>🧑 Ages 11-18</span>
+                          <span className="text-muted-foreground text-xs">(Advanced reasoning, math, analysis)</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* Assessment Info */}
-              {selectedChild && (
+              {selectedChild && (!isIQTest || selectedAgeGroup) && (
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <h4 className="font-semibold mb-2">Assessment Details:</h4>
                   <ul className="text-sm text-muted-foreground space-y-1">
                     <li>• Estimated time: {assessmentType.duration} minutes</li>
-                    <li>• Questions: {questions?.length || 0} total</li>
+                    <li>• Questions: {filteredQuestions?.length || 0} total</li>
                     <li>• For: {selectedChild.name} (Age {selectedChild.age})</li>
+                    {isIQTest && selectedAgeGroup && (
+                      <li>• Test level: {selectedAgeGroup}</li>
+                    )}
                     <li>• All responses are confidential and secure</li>
                   </ul>
                 </div>
@@ -320,7 +359,7 @@ export default function AssessmentTest() {
               <div className="flex justify-center">
                 <Button 
                   onClick={() => setIsStarted(true)}
-                  disabled={!selectedChildId || !questions || questions.length === 0}
+                  disabled={!selectedChildId || !filteredQuestions || filteredQuestions.length === 0 || (isIQTest && !selectedAgeGroup)}
                   className="px-8"
                   data-testid="button-start-assessment"
                 >
@@ -342,10 +381,10 @@ export default function AssessmentTest() {
                 onPrevious={handlePrevious}
                 canGoNext={!!answers[currentQuestion.id]}
                 canGoPrevious={currentQuestionIndex > 0}
-                isLastQuestion={currentQuestionIndex === (questions?.length || 0) - 1}
+                isLastQuestion={currentQuestionIndex === (filteredQuestions?.length || 0) - 1}
                 isSubmitting={saveResultMutation.isPending}
                 currentIndex={currentQuestionIndex}
-                totalQuestions={questions?.length || 0}
+                totalQuestions={filteredQuestions?.length || 0}
               />
             )}
           </div>
