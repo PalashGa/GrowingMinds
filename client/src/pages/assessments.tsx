@@ -71,12 +71,15 @@ export default function Assessments() {
   const getAssessmentIcon = (name: string) => {
     switch (name) {
       case 'behavioral':
+      case 'child_behavioral':
         return Brain;
       case 'personality':
         return Users;
       case 'iq':
         return Brain;
       case 'career':
+        return CheckCircle;
+      case 'strengths_weakness':
         return CheckCircle;
       default:
         return Brain;
@@ -86,6 +89,7 @@ export default function Assessments() {
   const getAssessmentColor = (name: string) => {
     switch (name) {
       case 'behavioral':
+      case 'child_behavioral':
         return 'primary';
       case 'personality':
         return 'secondary';
@@ -93,6 +97,8 @@ export default function Assessments() {
         return 'accent';
       case 'career':
         return 'primary';
+      case 'strengths_weakness':
+        return 'secondary';
       default:
         return 'primary';
     }
@@ -174,11 +180,11 @@ export default function Assessments() {
                         <strong>What you'll discover:</strong>
                       </div>
                       <ul className="text-sm text-muted-foreground space-y-1">
-                        {assessment.name === 'behavioral' && (
+                        {(assessment.name === 'behavioral' || assessment.name === 'child_behavioral') && (
                           <>
-                            <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-secondary" />Behavioral patterns and tendencies</li>
-                            <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-secondary" />Social interaction styles</li>
-                            <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-secondary" />Response to new situations</li>
+                            <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-secondary" />Emotional & behavioral patterns</li>
+                            <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-secondary" />Social skills & peer relationships</li>
+                            <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-secondary" />Self-esteem & confidence levels</li>
                           </>
                         )}
                         {assessment.name === 'personality' && (
@@ -200,6 +206,13 @@ export default function Assessments() {
                             <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-secondary" />Interest and aptitude mapping</li>
                             <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-secondary" />Potential career paths</li>
                             <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-secondary" />Educational recommendations</li>
+                          </>
+                        )}
+                        {assessment.name === 'strengths_weakness' && (
+                          <>
+                            <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-secondary" />Personal strengths identification</li>
+                            <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-secondary" />Areas for improvement</li>
+                            <li className="flex items-center"><CheckCircle className="mr-2 h-3 w-3 text-secondary" />Learning style preferences</li>
                           </>
                         )}
                       </ul>
