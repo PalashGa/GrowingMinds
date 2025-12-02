@@ -330,19 +330,6 @@ export default function AssessmentTest() {
         ) : (
           /* Assessment Form */
           <div className="space-y-6">
-            {/* Progress */}
-            <Card data-testid="card-progress">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Progress</span>
-                  <span className="text-sm text-muted-foreground" data-testid="text-progress">
-                    {currentQuestionIndex + 1} of {questions?.length || 0}
-                  </span>
-                </div>
-                <Progress value={progress} className="h-2" data-testid="progress-bar" />
-              </CardContent>
-            </Card>
-
             {/* Question */}
             {currentQuestion && (
               <AssessmentForm
@@ -355,6 +342,8 @@ export default function AssessmentTest() {
                 canGoPrevious={currentQuestionIndex > 0}
                 isLastQuestion={currentQuestionIndex === (questions?.length || 0) - 1}
                 isSubmitting={saveResultMutation.isPending}
+                currentIndex={currentQuestionIndex}
+                totalQuestions={questions?.length || 0}
               />
             )}
           </div>

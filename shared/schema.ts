@@ -72,6 +72,7 @@ export const assessmentQuestions = pgTable("assessment_questions", {
   options: jsonb("options"), // for multiple choice questions
   orderIndex: integer("order_index").notNull(),
   isRequired: boolean("is_required").default(true),
+  category: varchar("category"), // category grouping for behavioral questions
 });
 
 // Assessment results
