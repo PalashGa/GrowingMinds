@@ -98,9 +98,12 @@ export default function ProgressChart({ childId }: ProgressChartProps) {
     }> = [];
 
     assessmentResults?.slice(-3).forEach(result => {
+      const dateValue = result.completedAt ? 
+        (typeof result.completedAt === 'string' ? result.completedAt : new Date(result.completedAt).toISOString()) 
+        : new Date().toISOString();
       activities.push({
         type: 'Assessment',
-        date: result.completedAt!.toISOString(),
+        date: dateValue,
         description: `Completed ${result.assessmentTypeId.replace('-', ' ')} assessment`,
         icon: Brain,
         color: '#4F46E5'
@@ -108,9 +111,12 @@ export default function ProgressChart({ childId }: ProgressChartProps) {
     });
 
     yogaSessions?.slice(-3).forEach(session => {
+      const dateValue = session.startedAt ? 
+        (typeof session.startedAt === 'string' ? session.startedAt : new Date(session.startedAt).toISOString()) 
+        : new Date().toISOString();
       activities.push({
         type: 'Yoga',
-        date: session.startedAt!.toISOString(),
+        date: dateValue,
         description: `Completed ${session.duration}-minute yoga session`,
         icon: Flower,
         color: '#059669'
@@ -118,9 +124,12 @@ export default function ProgressChart({ childId }: ProgressChartProps) {
     });
 
     gameScores?.slice(-3).forEach(score => {
+      const dateValue = score.playedAt ? 
+        (typeof score.playedAt === 'string' ? score.playedAt : new Date(score.playedAt).toISOString()) 
+        : new Date().toISOString();
       activities.push({
         type: 'Game',
-        date: score.playedAt!.toISOString(),
+        date: dateValue,
         description: `Scored ${score.score} points in game`,
         icon: Gamepad2,
         color: '#DC2626'
