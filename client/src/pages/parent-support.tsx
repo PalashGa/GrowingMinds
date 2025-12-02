@@ -87,8 +87,8 @@ export default function ParentSupport() {
     enabled: isAuthenticated && !!selectedChild?.id,
   });
 
-  const { data: gameSessions } = useQuery({
-    queryKey: ['/api/children', selectedChild?.id, 'game-sessions'],
+  const { data: gameScores } = useQuery({
+    queryKey: ['/api/children', selectedChild?.id, 'game-scores'],
     enabled: isAuthenticated && !!selectedChild?.id,
   });
 
@@ -160,7 +160,7 @@ export default function ParentSupport() {
 
   const completedAssessments = assessmentResults?.length || 0;
   const yogaSessionsCount = Array.isArray(yogaSessions) ? yogaSessions.length : 0;
-  const gameSessionsCount = Array.isArray(gameSessions) ? gameSessions.length : 0;
+  const gameScoresCount = Array.isArray(gameScores) ? gameScores.length : 0;
 
   const quickActions = [
     { 
@@ -411,7 +411,7 @@ export default function ParentSupport() {
                           <div className="text-xs text-gray-500">Yoga Sessions</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-pink-600">{gameSessionsCount}</div>
+                          <div className="text-2xl font-bold text-pink-600">{gameScoresCount}</div>
                           <div className="text-xs text-gray-500">Games Played</div>
                         </div>
                       </div>
@@ -465,7 +465,7 @@ export default function ParentSupport() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-pink-100 text-sm">Games Played</p>
-                      <p className="text-3xl font-bold">{gameSessionsCount}</p>
+                      <p className="text-3xl font-bold">{gameScoresCount}</p>
                     </div>
                     <Gamepad2 className="h-10 w-10 text-pink-200" />
                   </div>
@@ -593,9 +593,9 @@ export default function ParentSupport() {
                     <div>
                       <div className="flex justify-between mb-1">
                         <span className="text-sm font-medium text-gray-700">Games Played</span>
-                        <span className="text-sm text-gray-500">{gameSessionsCount}/26</span>
+                        <span className="text-sm text-gray-500">{gameScoresCount}/26</span>
                       </div>
-                      <Progress value={(gameSessionsCount / 26) * 100} className="h-2" />
+                      <Progress value={(gameScoresCount / 26) * 100} className="h-2" />
                     </div>
                     <div>
                       <div className="flex justify-between mb-1">
@@ -612,7 +612,7 @@ export default function ParentSupport() {
                       <div>
                         <p className="font-semibold text-gray-800">Overall Progress</p>
                         <p className="text-sm text-gray-600">
-                          {Math.round(((completedAssessments * 20) + (yogaSessionsCount * 5) + (gameSessionsCount * 2) + (nutritionPlan ? 20 : 0)) / 100 * 100)}% development activities completed
+                          {Math.round(((completedAssessments * 20) + (yogaSessionsCount * 5) + (gameScoresCount * 2) + (nutritionPlan ? 20 : 0)) / 100 * 100)}% development activities completed
                         </p>
                       </div>
                     </div>
