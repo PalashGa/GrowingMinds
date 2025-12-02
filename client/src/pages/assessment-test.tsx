@@ -51,13 +51,13 @@ export default function AssessmentTest() {
     retry: false,
   });
 
-  const { data: assessmentType, error: typeError } = useQuery<AssessmentType>({
+  const { data: assessmentType, error: typeError, isLoading: typeLoading } = useQuery<AssessmentType>({
     queryKey: ['/api/assessments/types', typeId],
     enabled: isAuthenticated && !!typeId,
     retry: false,
   });
 
-  const { data: questions, error: questionsError } = useQuery<AssessmentQuestion[]>({
+  const { data: questions, error: questionsError, isLoading: questionsLoading } = useQuery<AssessmentQuestion[]>({
     queryKey: ['/api/assessments', typeId, 'questions'],
     enabled: isAuthenticated && !!typeId,
     retry: false,
@@ -164,7 +164,7 @@ export default function AssessmentTest() {
     saveResultMutation.mutate(resultData);
   };
 
-  if (isLoading) {
+  if (isLoading || typeLoading || questionsLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -175,7 +175,7 @@ export default function AssessmentTest() {
     );
   }
 
-  if (!assessmentType) {
+  if (!assessmentType || typeError) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
