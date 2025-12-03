@@ -1,8 +1,13 @@
-# Smart Study Zone - Child Development Platform
+# Growing Mind - Child Development Platform
 
 ## Overview
 
-Smart Study Zone is a comprehensive child development platform that provides assessment tools, educational programs, and progress tracking for children aged 5-16. The application offers behavioral assessments, yoga programs, nutrition planning, robotics education, and educational games to support holistic child development.
+Growing Mind (Children's Future) is a comprehensive child development platform that provides assessment tools, educational programs, and progress tracking for children aged 5-16. The application offers behavioral assessments, yoga programs, nutrition planning, robotics education, and educational games to support holistic child development.
+
+## Branding
+- **Company Name**: Growing Mind
+- **Tagline**: Children's Future
+- **Logo**: attached_assets/logo-png_1764759697879.png (yellow background with child reading, used in navbar and footer)
 
 ## User Preferences
 

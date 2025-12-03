@@ -1,8 +1,9 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import logoImage from "@assets/logo-png_1764759697879.png";
 
 export default function Navbar() {
   const [location] = useLocation();
@@ -19,8 +20,8 @@ export default function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0 flex items-center" data-testid="link-home">
-              <GraduationCap className="text-2xl text-primary mr-3" />
-              <span className="text-xl font-bold text-foreground">Smart Study Zone</span>
+              <img src={logoImage} alt="Growing Mind" className="h-10 w-10 mr-2 rounded-full" />
+              <span className="text-xl font-bold text-foreground">Growing Mind</span>
             </Link>
           </div>
 

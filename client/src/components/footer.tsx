@@ -1,4 +1,5 @@
-import { GraduationCap, Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
+import { Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
+import logoImage from "@assets/logo-png_1764759697879.png";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -9,8 +10,11 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center mb-6">
-              <GraduationCap className="text-2xl text-primary mr-3" />
-              <span className="text-xl font-bold">Smart Study Zone</span>
+              <img src={logoImage} alt="Growing Mind" className="h-12 w-12 mr-3 rounded-full" />
+              <div>
+                <span className="text-xl font-bold">Growing Mind</span>
+                <p className="text-sm text-white/70">Children's Future</p>
+              </div>
             </div>
             <p className="text-white/70 mb-6" data-testid="text-footer-description">
               Empowering children's development through comprehensive assessments, personalized programs, and expert guidance.
@@ -83,7 +87,7 @@ export default function Footer() {
         
         <div className="border-t border-white/20 mt-12 pt-8 text-center">
           <p className="text-white/70" data-testid="text-copyright">
-            © {currentYear} Smart Study Zone. All rights reserved. | Designed for children's bright futures.
+            © {currentYear} Growing Mind. All rights reserved. | Children's Future - Designed for bright minds.
           </p>
         </div>
       </div>
