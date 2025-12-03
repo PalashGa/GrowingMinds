@@ -39,7 +39,7 @@ interface GeneratedReport {
     parentActionChecklist: string[];
   };
   behavioralInsights: {
-    questionAnalysis: { question: string; meaning: string }[];
+    questionAnalysis: { question: string; answer: string; meaning: string }[];
     domains: { name: string; score: number; category: string; interpretation: string }[];
   };
   strengthsAnalysis: {
@@ -145,7 +145,7 @@ export async function generateReport(assessmentData: AssessmentData): Promise<Ge
   const scoreCategory = overallScore >= 80 ? "Excellent" : overallScore >= 60 ? "Good" : overallScore >= 40 ? "Developing" : "Needs Support";
 
   const answersText = assessmentData.answers.map((a, i) => 
-    `Q${i + 1}: ${a.questionText} - Answer: ${a.answer} (Score: ${a.value}/5)`
+    `Q${i + 1}: "${a.questionText}" - Answer: ${a.answer} (Score: ${a.value}/5)`
   ).join("\n");
 
   const domainsText = domains.map(d => 
@@ -162,6 +162,21 @@ ${domainsText}
 
 OVERALL SCORE: ${overallScore}% (${scoreCategory})
 
+IMPORTANT: For the "questionAnalysis" field, analyze EACH question and its answer to provide a detailed behavior interpretation. 
+
+Example format for questionAnalysis:
+If Q1 is "I feel angry when someone changes my things" and Answer = "Often (4)", return:
+{
+  "question": "I feel angry when someone changes my things",
+  "answer": "Often",
+  "interpretation": "The child experiences frustration when their personal space is disturbed. This indicates sensitivity to routine changes and a need for control or predictability."
+}
+
+Generate interpretations that explain:
+1. What this specific answer reveals about the child's behavior
+2. The underlying emotional or developmental pattern
+3. Whether this is typical for their age or needs attention
+
 Generate a detailed JSON response with the following structure. Be specific, actionable, and positive while addressing areas for improvement. Tailor everything to the child's age (${assessmentData.childAge} years).
 
 {
@@ -169,7 +184,7 @@ Generate a detailed JSON response with the following structure. Be specific, act
   "growthAreas": ["3-4 areas needing improvement based on low-scoring answers"],
   "recommendations": ["3 major personalized recommendations"],
   "parentActionChecklist": ["5 immediate actionable items for parents"],
-  "questionAnalysis": [{"question": "Q1 text", "meaning": "What this answer reveals about the child"}],
+  "questionAnalysis": [{"question": "Q1 text", "answer": "The answer given", "interpretation": "Detailed behavior interpretation explaining what this answer reveals about the child, the underlying pattern, and developmental significance"}],
   "domainInterpretations": [{"domain": "Domain name", "interpretation": "Detailed interpretation"}],
   "strengths": {
     "academic": ["2-3 academic strengths"],
@@ -230,9 +245,11 @@ Ensure all content is age-appropriate for a ${assessmentData.childAge}-year-old 
     const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const aiResponse = JSON.parse(cleanContent);
 
-    const questionAnalysis = assessmentData.answers.slice(0, 10).map((a, i) => ({
+    const questionAnalysis = assessmentData.answers.map((a, i) => ({
       question: a.questionText,
-      meaning: aiResponse.questionAnalysis?.[i]?.meaning || `This response indicates the child's approach to ${a.questionText.toLowerCase().includes('focus') ? 'attention' : a.questionText.toLowerCase().includes('emotion') ? 'emotional regulation' : 'behavioral patterns'}.`
+      answer: a.answer,
+      meaning: aiResponse.questionAnalysis?.[i]?.interpretation || 
+        `Q${i + 1} Behaviour Interpretation: This response to "${a.questionText}" with answer "${a.answer}" indicates the child's approach to ${a.questionText.toLowerCase().includes('focus') ? 'attention and concentration' : a.questionText.toLowerCase().includes('emotion') || a.questionText.toLowerCase().includes('angry') || a.questionText.toLowerCase().includes('sad') ? 'emotional regulation and self-awareness' : a.questionText.toLowerCase().includes('friend') || a.questionText.toLowerCase().includes('share') ? 'social interaction and relationship building' : 'behavioral patterns and self-management'}.`
     }));
 
     const domainInterpretations = domains.map(d => ({
