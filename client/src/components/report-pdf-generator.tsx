@@ -11,6 +11,7 @@ import {
   Brain, Heart, Target, GraduationCap, Sparkles
 } from "lucide-react";
 import jsPDF from "jspdf";
+import logoImage from "@assets/logo-png_1764759697879.png";
 
 interface ReportData {
   coverPage: {
@@ -106,23 +107,76 @@ interface ReportGeneratorProps {
 }
 
 const COLORS = {
-  primary: [99, 102, 241],      // Indigo
-  secondary: [16, 185, 129],    // Emerald
-  accent: [236, 72, 153],       // Pink
-  warning: [245, 158, 11],      // Amber
-  success: [34, 197, 94],       // Green
-  info: [59, 130, 246],         // Blue
-  purple: [139, 92, 246],       // Purple
-  orange: [249, 115, 22],       // Orange
-  teal: [20, 184, 166],         // Teal
-  rose: [244, 63, 94],          // Rose
-  muted: [100, 116, 139],
-  dark: [30, 41, 59],
-  light: [241, 245, 249],
-  white: [255, 255, 255],
+  primary: [99, 102, 241] as [number, number, number],
+  secondary: [16, 185, 129] as [number, number, number],
+  accent: [236, 72, 153] as [number, number, number],
+  warning: [245, 158, 11] as [number, number, number],
+  success: [34, 197, 94] as [number, number, number],
+  info: [59, 130, 246] as [number, number, number],
+  purple: [139, 92, 246] as [number, number, number],
+  orange: [249, 115, 22] as [number, number, number],
+  teal: [20, 184, 166] as [number, number, number],
+  rose: [244, 63, 94] as [number, number, number],
+  gold: [234, 179, 8] as [number, number, number],
+  muted: [100, 116, 139] as [number, number, number],
+  dark: [30, 41, 59] as [number, number, number],
+  light: [241, 245, 249] as [number, number, number],
+  white: [255, 255, 255] as [number, number, number],
 };
 
-function generatePDF(report: ReportData): void {
+function sanitizeText(text: string): string {
+  if (!text) return '';
+  
+  const replacements: { [key: string]: string } = {
+    '\u2019': "'",
+    '\u2018': "'",
+    '\u201C': '"',
+    '\u201D': '"',
+    '\u2013': '-',
+    '\u2014': '-',
+    '\u2026': '...',
+    '\u00A0': ' ',
+    '\u2022': '-',
+    '\u2713': '*',
+    '\u2714': '*',
+    '\u2715': 'x',
+    '\u2716': 'x',
+    '\u2605': '*',
+    '\u2606': '*',
+    '\u25CF': '-',
+    '\u25CB': 'o',
+    '\u25A0': '-',
+    '\u25A1': 'o',
+    '\u25B6': '>',
+    '\u25C0': '<',
+    '\u2190': '<-',
+    '\u2192': '->',
+    '\u2191': '^',
+    '\u2193': 'v',
+  };
+  
+  let result = '';
+  for (const char of text) {
+    const code = char.charCodeAt(0);
+    if (code >= 0x1F300 && code <= 0x1F9FF) continue;
+    if (code >= 0x2600 && code <= 0x26FF) continue;
+    if (code >= 0x2700 && code <= 0x27BF) continue;
+    if (code >= 0x1F600 && code <= 0x1F64F) continue;
+    if (code >= 0x1F680 && code <= 0x1F6FF) continue;
+    if (code >= 0x1F1E0 && code <= 0x1F1FF) continue;
+    if (code > 0xFFFF) continue;
+    
+    if (code > 127) {
+      result += replacements[char] || '';
+    } else {
+      result += char;
+    }
+  }
+  
+  return result.replace(/\s+/g, ' ').trim();
+}
+
+async function generatePDF(report: ReportData): Promise<void> {
   const doc = new jsPDF('p', 'mm', 'a4');
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -141,62 +195,61 @@ function generatePDF(report: ReportData): void {
     }
   };
 
-  const drawColoredHeader = (text: string, bgColor: number[], icon?: string) => {
-    checkPageBreak(20);
+  const drawSectionTitle = (text: string, bgColor: [number, number, number]) => {
+    checkPageBreak(18);
     doc.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
-    doc.roundedRect(margin, yPos, contentWidth, 14, 3, 3, 'F');
+    doc.roundedRect(margin, yPos, contentWidth, 12, 2, 2, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
-    const iconText = icon ? `${icon} ` : '';
-    doc.text(`${iconText}${text}`, margin + 6, yPos + 9);
+    doc.text(sanitizeText(text), margin + 5, yPos + 8);
     doc.setTextColor(0, 0, 0);
-    yPos += 20;
+    yPos += 18;
   };
 
-  const drawSubHeader = (text: string, color: number[] = COLORS.primary) => {
-    checkPageBreak(12);
-    doc.setFontSize(12);
+  const drawSubHeading = (text: string, color: [number, number, number] = COLORS.primary) => {
+    checkPageBreak(10);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(color[0], color[1], color[2]);
-    doc.text(text, margin, yPos);
+    doc.text(sanitizeText(text), margin, yPos);
     doc.setTextColor(0, 0, 0);
-    yPos += 8;
+    yPos += 7;
   };
 
-  const drawText = (text: string, fontSize = 10, color: number[] = COLORS.dark) => {
-    checkPageBreak(8);
+  const drawBodyText = (text: string, fontSize = 9, color: [number, number, number] = COLORS.dark) => {
+    checkPageBreak(6);
     doc.setFontSize(fontSize);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(color[0], color[1], color[2]);
-    const lines = doc.splitTextToSize(text, contentWidth);
+    const cleanText = sanitizeText(text);
+    const lines = doc.splitTextToSize(cleanText, contentWidth - 5);
     doc.text(lines, margin, yPos);
     doc.setTextColor(0, 0, 0);
-    yPos += lines.length * 5 + 3;
+    yPos += lines.length * 4.5 + 2;
   };
 
-  const drawColoredBullet = (text: string, bulletColor: number[], indent = 0) => {
-    checkPageBreak(8);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+  const drawBulletPoint = (text: string, bulletColor: [number, number, number], indent = 0) => {
+    checkPageBreak(7);
     const bulletX = margin + indent;
     doc.setFillColor(bulletColor[0], bulletColor[1], bulletColor[2]);
-    doc.circle(bulletX + 2, yPos - 1.5, 1.5, 'F');
+    doc.circle(bulletX + 1.5, yPos - 1, 1.2, 'F');
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-    const lines = doc.splitTextToSize(text, contentWidth - indent - 8);
-    doc.text(lines, bulletX + 7, yPos);
-    yPos += lines.length * 5 + 2;
+    const cleanText = sanitizeText(text);
+    const lines = doc.splitTextToSize(cleanText, contentWidth - indent - 8);
+    doc.text(lines, bulletX + 5, yPos);
+    yPos += lines.length * 4.5 + 2;
   };
 
-  const drawPieChart = (centerX: number, centerY: number, radius: number, value: number, color: number[], label: string) => {
-    const startAngle = -90;
-    const endAngle = startAngle + (value / 100) * 360;
-    
+  const drawPieChart = (centerX: number, centerY: number, radius: number, value: number, color: [number, number, number], label: string) => {
     doc.setFillColor(230, 230, 230);
     doc.circle(centerX, centerY, radius, 'F');
     
     doc.setFillColor(color[0], color[1], color[2]);
     if (value > 0) {
+      const startAngle = -90;
       const segments = Math.ceil(value / 5);
       for (let i = 0; i <= segments; i++) {
         const angle1 = (startAngle + (i * 360 * value / 100 / segments)) * Math.PI / 180;
@@ -210,416 +263,428 @@ function generatePDF(report: ReportData): void {
     }
     
     doc.setFillColor(255, 255, 255);
-    doc.circle(centerX, centerY, radius * 0.6, 'F');
+    doc.circle(centerX, centerY, radius * 0.55, 'F');
     
-    doc.setFontSize(14);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(color[0], color[1], color[2]);
-    doc.text(`${value}%`, centerX, centerY + 2, { align: 'center' });
+    doc.text(`${value}%`, centerX, centerY + 1, { align: 'center' });
     
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-    doc.text(label, centerX, centerY + radius + 6, { align: 'center' });
+    doc.text(sanitizeText(label), centerX, centerY + radius + 5, { align: 'center' });
   };
 
-  const drawHorizontalBar = (x: number, y: number, width: number, height: number, value: number, color: number[], label: string) => {
+  const drawProgressBar = (x: number, y: number, width: number, height: number, value: number, color: [number, number, number], label: string) => {
     doc.setFillColor(230, 230, 230);
     doc.roundedRect(x, y, width, height, 2, 2, 'F');
     
-    const fillWidth = (width * value) / 100;
-    if (fillWidth > 0) {
-      doc.setFillColor(color[0], color[1], color[2]);
-      doc.roundedRect(x, y, fillWidth, height, 2, 2, 'F');
-    }
+    const fillWidth = Math.max((width * value) / 100, 2);
+    doc.setFillColor(color[0], color[1], color[2]);
+    doc.roundedRect(x, y, fillWidth, height, 2, 2, 'F');
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-    doc.text(label, x, y - 2);
+    doc.text(sanitizeText(label), x, y - 2);
     
     doc.setTextColor(color[0], color[1], color[2]);
     doc.text(`${value}%`, x + width + 3, y + height - 1);
   };
 
-  const drawInfoCard = (x: number, y: number, width: number, height: number, title: string, content: string, color: number[]) => {
-    doc.setFillColor(color[0], color[1], color[2], 0.1);
-    doc.setDrawColor(color[0], color[1], color[2]);
-    doc.setLineWidth(0.5);
-    doc.roundedRect(x, y, width, height, 3, 3, 'FD');
-    
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(color[0], color[1], color[2]);
-    doc.text(title, x + 4, y + 6);
-    
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-    const lines = doc.splitTextToSize(content, width - 8);
-    doc.text(lines, x + 4, y + 12);
-  };
-
   // ========== PAGE 1: COVER PAGE ==========
+  doc.setFillColor(COLORS.gold[0], COLORS.gold[1], COLORS.gold[2]);
+  doc.rect(0, 0, pageWidth, pageHeight, 'F');
+  
   doc.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-  doc.rect(0, 0, pageWidth, pageHeight * 0.5, 'F');
+  doc.circle(pageWidth / 2, 55, 28, 'F');
   
-  doc.setFillColor(COLORS.secondary[0], COLORS.secondary[1], COLORS.secondary[2]);
-  doc.rect(0, pageHeight * 0.5, pageWidth, pageHeight * 0.5, 'F');
-  
-  doc.setFillColor(255, 255, 255);
-  doc.circle(pageWidth / 2, 50, 25, 'F');
-  doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-  doc.text('SSZ', pageWidth / 2, 54, { align: 'center' });
+  try {
+    const img = new Image();
+    img.src = logoImage;
+    doc.addImage(img, 'PNG', pageWidth / 2 - 22, 33, 44, 44);
+  } catch (e) {
+    doc.setFillColor(255, 255, 255);
+    doc.circle(pageWidth / 2, 55, 20, 'F');
+    doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('GM', pageWidth / 2, 58, { align: 'center' });
+  }
   
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(28);
-  doc.text('Smart Study Zone', pageWidth / 2, 95, { align: 'center' });
+  doc.setFontSize(32);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Growing Mind', pageWidth / 2, 95, { align: 'center' });
   
   doc.setFontSize(14);
   doc.setFont('helvetica', 'normal');
-  doc.text('Child Development Assessment Report', pageWidth / 2, 108, { align: 'center' });
+  doc.text("Children's Future", pageWidth / 2, 105, { align: 'center' });
   
   doc.setFillColor(255, 255, 255);
-  doc.roundedRect(30, 125, pageWidth - 60, 90, 8, 8, 'F');
-  
-  doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-  doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
-  doc.text(report.coverPage.childName, pageWidth / 2, 150, { align: 'center' });
-  
-  doc.setFillColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
-  doc.roundedRect(pageWidth/2 - 25, 160, 50, 8, 2, 2, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(10);
-  doc.text(`Age: ${report.coverPage.childAge} years`, pageWidth / 2, 166, { align: 'center' });
+  doc.roundedRect(25, 120, pageWidth - 50, 85, 6, 6, 'F');
   
   doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
-  doc.text(report.coverPage.assessmentType, pageWidth / 2, 185, { align: 'center' });
+  doc.text('Child Development Assessment Report', pageWidth / 2, 135, { align: 'center' });
+  
+  doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+  doc.setFontSize(26);
+  doc.setFont('helvetica', 'bold');
+  doc.text(sanitizeText(report.coverPage.childName), pageWidth / 2, 155, { align: 'center' });
+  
+  doc.setFillColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+  doc.roundedRect(pageWidth/2 - 22, 162, 44, 8, 2, 2, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
+  doc.text(`Age: ${report.coverPage.childAge} years`, pageWidth / 2, 168, { align: 'center' });
+  
+  doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.text(sanitizeText(report.coverPage.assessmentType), pageWidth / 2, 185, { align: 'center' });
   doc.setFontSize(10);
   doc.text(`Date: ${report.coverPage.testDate}`, pageWidth / 2, 195, { align: 'center' });
   
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(11);
-  doc.text('Personalized Insights for Your Child\'s Growth', pageWidth / 2, 240, { align: 'center' });
+  doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'italic');
+  doc.text('Based on child behavioral science principles', pageWidth / 2, 230, { align: 'center' });
   
   doc.setFontSize(9);
-  doc.text('Powered by AI-driven Analysis', pageWidth / 2, 250, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.text('Personalized Insights for Your Child\'s Growth', pageWidth / 2, 240, { align: 'center' });
 
   // ========== PAGE 2: EXECUTIVE SUMMARY ==========
   addNewPage();
   
   doc.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.rect(0, 0, pageWidth, 35, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('EXECUTIVE SUMMARY', pageWidth / 2, 25, { align: 'center' });
-  yPos = 50;
+  doc.text('EXECUTIVE SUMMARY', pageWidth / 2, 22, { align: 'center' });
+  yPos = 45;
   
-  const scoreColor = report.executiveSummary.overallScore >= 80 ? COLORS.success :
+  const scoreColor: [number, number, number] = report.executiveSummary.overallScore >= 80 ? COLORS.success :
                      report.executiveSummary.overallScore >= 60 ? COLORS.info :
                      report.executiveSummary.overallScore >= 40 ? COLORS.warning : COLORS.rose;
   
-  drawPieChart(pageWidth / 2, yPos + 30, 25, report.executiveSummary.overallScore, scoreColor, report.executiveSummary.scoreCategory);
-  yPos += 70;
+  drawPieChart(pageWidth / 2, yPos + 25, 22, report.executiveSummary.overallScore, scoreColor, report.executiveSummary.scoreCategory);
+  yPos += 60;
+  
+  const halfWidth = (contentWidth - 10) / 2;
+  
+  doc.setFillColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
+  doc.roundedRect(margin, yPos, halfWidth, 8, 2, 2, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('KEY STRENGTHS', margin + 4, yPos + 5.5);
   
   doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
-  doc.roundedRect(margin, yPos, contentWidth / 2 - 5, 50, 4, 4, 'F');
-  doc.roundedRect(margin + contentWidth / 2 + 5, yPos, contentWidth / 2 - 5, 50, 4, 4, 'F');
-  
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
-  doc.text('Strengths', margin + 5, yPos + 10);
+  doc.roundedRect(margin, yPos + 8, halfWidth, 45, 2, 2, 'F');
   
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-  report.executiveSummary.strengthAreas.slice(0, 3).forEach((s, i) => {
-    const lines = doc.splitTextToSize(`• ${s}`, contentWidth / 2 - 15);
-    doc.text(lines[0], margin + 5, yPos + 18 + (i * 10));
+  report.executiveSummary.strengthAreas.slice(0, 4).forEach((s, i) => {
+    const cleanText = sanitizeText(s);
+    const lines = doc.splitTextToSize(`- ${cleanText}`, halfWidth - 8);
+    doc.text(lines[0], margin + 4, yPos + 17 + (i * 10));
   });
   
-  doc.setFontSize(11);
+  doc.setFillColor(COLORS.warning[0], COLORS.warning[1], COLORS.warning[2]);
+  doc.roundedRect(margin + halfWidth + 10, yPos, halfWidth, 8, 2, 2, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(COLORS.warning[0], COLORS.warning[1], COLORS.warning[2]);
-  doc.text('Growth Areas', margin + contentWidth / 2 + 10, yPos + 10);
+  doc.text('GROWTH AREAS', margin + halfWidth + 14, yPos + 5.5);
+  
+  doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
+  doc.roundedRect(margin + halfWidth + 10, yPos + 8, halfWidth, 45, 2, 2, 'F');
   
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-  report.executiveSummary.growthAreas.slice(0, 3).forEach((g, i) => {
-    const lines = doc.splitTextToSize(`• ${g}`, contentWidth / 2 - 15);
-    doc.text(lines[0], margin + contentWidth / 2 + 10, yPos + 18 + (i * 10));
+  report.executiveSummary.growthAreas.slice(0, 4).forEach((g, i) => {
+    const cleanText = sanitizeText(g);
+    const lines = doc.splitTextToSize(`- ${cleanText}`, halfWidth - 8);
+    doc.text(lines[0], margin + halfWidth + 14, yPos + 17 + (i * 10));
   });
   yPos += 60;
   
-  drawColoredHeader('TOP RECOMMENDATIONS', COLORS.info, '★');
+  drawSectionTitle('TOP RECOMMENDATIONS', COLORS.info);
   report.executiveSummary.recommendations.forEach((rec, i) => {
-    drawColoredBullet(rec, i % 2 === 0 ? COLORS.info : COLORS.purple);
+    drawBulletPoint(rec, i % 2 === 0 ? COLORS.info : COLORS.purple);
   });
   yPos += 5;
   
-  drawColoredHeader('PARENT ACTION CHECKLIST', COLORS.accent, '✓');
-  report.executiveSummary.parentActionChecklist.forEach((item, i) => {
-    drawColoredBullet(item, COLORS.accent);
+  drawSectionTitle('PARENT ACTION CHECKLIST', COLORS.accent);
+  report.executiveSummary.parentActionChecklist.forEach((item) => {
+    drawBulletPoint(item, COLORS.accent);
   });
 
-  // ========== PAGE 3: BEHAVIORAL INSIGHTS WITH CHARTS ==========
+  // ========== PAGE 3: BEHAVIORAL INSIGHTS ==========
   addNewPage();
   
   doc.setFillColor(COLORS.secondary[0], COLORS.secondary[1], COLORS.secondary[2]);
-  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.rect(0, 0, pageWidth, 35, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('BEHAVIORAL INSIGHTS', pageWidth / 2, 25, { align: 'center' });
-  yPos = 50;
+  doc.text('BEHAVIORAL INSIGHTS', pageWidth / 2, 22, { align: 'center' });
+  yPos = 45;
   
-  drawSubHeader('Domain Performance Analysis', COLORS.secondary);
-  yPos += 5;
+  drawSubHeading('Domain Performance Analysis', COLORS.secondary);
+  yPos += 3;
   
-  const barColors = [COLORS.primary, COLORS.secondary, COLORS.accent, COLORS.info, COLORS.purple, COLORS.teal];
+  const barColors: [number, number, number][] = [COLORS.primary, COLORS.secondary, COLORS.accent, COLORS.info, COLORS.purple, COLORS.teal];
   report.behavioralInsights.domains.forEach((domain, i) => {
     const color = barColors[i % barColors.length];
-    drawHorizontalBar(margin, yPos, contentWidth - 20, 8, domain.score, color, domain.name);
-    yPos += 18;
+    drawProgressBar(margin, yPos, contentWidth - 25, 7, domain.score, color, domain.name);
+    yPos += 16;
   });
-  yPos += 10;
+  yPos += 8;
   
-  drawColoredHeader('KEY BEHAVIORAL OBSERVATIONS', COLORS.purple, '◆');
+  drawSectionTitle('KEY BEHAVIORAL OBSERVATIONS', COLORS.purple);
   
   report.behavioralInsights.questionAnalysis.slice(0, 8).forEach((qa, i) => {
-    checkPageBreak(25);
+    checkPageBreak(22);
     
-    const cardColors = [COLORS.primary, COLORS.secondary, COLORS.accent, COLORS.info, COLORS.purple, COLORS.teal, COLORS.orange, COLORS.rose];
+    const cardColors: [number, number, number][] = [COLORS.primary, COLORS.secondary, COLORS.accent, COLORS.info, COLORS.purple, COLORS.teal, COLORS.orange, COLORS.rose];
     const cardColor = cardColors[i % cardColors.length];
     
     doc.setFillColor(cardColor[0], cardColor[1], cardColor[2]);
-    doc.roundedRect(margin, yPos, 4, 18, 1, 1, 'F');
+    doc.roundedRect(margin, yPos, 3, 16, 1, 1, 'F');
     
     doc.setFillColor(250, 250, 252);
-    doc.roundedRect(margin + 5, yPos, contentWidth - 5, 18, 2, 2, 'F');
+    doc.roundedRect(margin + 4, yPos, contentWidth - 4, 16, 2, 2, 'F');
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(cardColor[0], cardColor[1], cardColor[2]);
-    doc.text(`Insight ${i + 1}`, margin + 8, yPos + 6);
+    doc.text(`Observation ${i + 1}`, margin + 7, yPos + 5);
     
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-    const insightLines = doc.splitTextToSize(qa.meaning, contentWidth - 15);
-    doc.text(insightLines[0], margin + 8, yPos + 13);
+    const insightText = sanitizeText(qa.meaning);
+    const insightLines = doc.splitTextToSize(insightText, contentWidth - 15);
+    doc.text(insightLines[0], margin + 7, yPos + 12);
     
-    yPos += 22;
+    yPos += 20;
   });
 
   // ========== PAGE 4: STRENGTHS ANALYSIS ==========
   addNewPage();
   
   doc.setFillColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
-  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.rect(0, 0, pageWidth, 35, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('STRENGTHS ANALYSIS', pageWidth / 2, 25, { align: 'center' });
-  yPos = 50;
+  doc.text('STRENGTHS ANALYSIS', pageWidth / 2, 22, { align: 'center' });
+  yPos = 45;
   
   const strengthCategories = [
-    { name: 'Academic Strengths', items: report.strengthsAnalysis.academic, color: COLORS.info, icon: '📚' },
-    { name: 'Behavioral Strengths', items: report.strengthsAnalysis.behavioral, color: COLORS.success, icon: '⭐' },
-    { name: 'Social Strengths', items: report.strengthsAnalysis.social, color: COLORS.purple, icon: '👥' },
-    { name: 'Emotional Strengths', items: report.strengthsAnalysis.emotional, color: COLORS.rose, icon: '❤️' },
-    { name: 'Cognitive Strengths', items: report.strengthsAnalysis.cognitive, color: COLORS.teal, icon: '🧠' },
+    { name: 'Academic Strengths', items: report.strengthsAnalysis.academic, color: COLORS.info },
+    { name: 'Behavioral Strengths', items: report.strengthsAnalysis.behavioral, color: COLORS.success },
+    { name: 'Social Strengths', items: report.strengthsAnalysis.social, color: COLORS.purple },
+    { name: 'Emotional Strengths', items: report.strengthsAnalysis.emotional, color: COLORS.rose },
+    { name: 'Cognitive Strengths', items: report.strengthsAnalysis.cognitive, color: COLORS.teal },
   ];
   
-  strengthCategories.forEach((cat, catIndex) => {
-    checkPageBreak(35);
+  strengthCategories.forEach((cat) => {
+    checkPageBreak(30);
     
     doc.setFillColor(cat.color[0], cat.color[1], cat.color[2]);
-    doc.roundedRect(margin, yPos, contentWidth, 8, 2, 2, 'F');
+    doc.roundedRect(margin, yPos, contentWidth, 7, 2, 2, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${cat.icon} ${cat.name}`, margin + 4, yPos + 5.5);
-    yPos += 12;
+    doc.text(cat.name, margin + 4, yPos + 5);
+    yPos += 10;
     
     cat.items.forEach(item => {
-      drawColoredBullet(item, cat.color, 3);
+      drawBulletPoint(item, cat.color, 3);
     });
-    yPos += 5;
+    yPos += 4;
   });
 
   // ========== PAGE 5: AREAS FOR GROWTH ==========
   addNewPage();
   
   doc.setFillColor(COLORS.warning[0], COLORS.warning[1], COLORS.warning[2]);
-  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.rect(0, 0, pageWidth, 35, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('AREAS FOR GROWTH', pageWidth / 2, 25, { align: 'center' });
-  yPos = 50;
+  doc.text('AREAS FOR GROWTH', pageWidth / 2, 22, { align: 'center' });
+  yPos = 45;
   
   report.areasOfImprovement.forEach((area, i) => {
-    checkPageBreak(40);
+    checkPageBreak(38);
     
-    const areaColors = [COLORS.orange, COLORS.rose, COLORS.purple, COLORS.teal];
+    const areaColors: [number, number, number][] = [COLORS.orange, COLORS.rose, COLORS.purple, COLORS.teal];
     const areaColor = areaColors[i % areaColors.length];
     
     doc.setFillColor(areaColor[0], areaColor[1], areaColor[2]);
-    doc.roundedRect(margin, yPos, contentWidth, 35, 4, 4, 'F');
+    doc.roundedRect(margin, yPos, contentWidth, 32, 3, 3, 'F');
     
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text(area.area, margin + 5, yPos + 8);
+    doc.text(sanitizeText(area.area), margin + 5, yPos + 7);
     
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(margin + 3, yPos + 12, contentWidth - 6, 20, 2, 2, 'F');
+    doc.roundedRect(margin + 3, yPos + 10, contentWidth - 6, 19, 2, 2, 'F');
     
     doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    const reasonLines = doc.splitTextToSize(`Why: ${area.reason}`, contentWidth - 12);
-    doc.text(reasonLines[0], margin + 6, yPos + 19);
-    const patternLines = doc.splitTextToSize(`Pattern: ${area.pattern}`, contentWidth - 12);
-    doc.text(patternLines[0], margin + 6, yPos + 27);
+    const reasonText = sanitizeText(`Why it matters: ${area.reason}`);
+    const reasonLines = doc.splitTextToSize(reasonText, contentWidth - 12);
+    doc.text(reasonLines[0], margin + 6, yPos + 17);
+    const patternText = sanitizeText(`Pattern observed: ${area.pattern}`);
+    const patternLines = doc.splitTextToSize(patternText, contentWidth - 12);
+    doc.text(patternLines[0], margin + 6, yPos + 25);
     
-    yPos += 42;
+    yPos += 38;
   });
 
   // ========== PAGE 6: PARENT GUIDANCE ==========
   addNewPage();
   
   doc.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.rect(0, 0, pageWidth, 35, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('PARENT GUIDANCE', pageWidth / 2, 25, { align: 'center' });
-  yPos = 50;
+  doc.text('PARENT GUIDANCE', pageWidth / 2, 22, { align: 'center' });
+  yPos = 45;
   
   report.parentGuidance.forEach((guide, guideIndex) => {
-    checkPageBreak(60);
+    checkPageBreak(55);
     
-    drawColoredHeader(guide.area, guideIndex % 2 === 0 ? COLORS.info : COLORS.purple, '👪');
+    const guideColor: [number, number, number] = guideIndex % 2 === 0 ? COLORS.info : COLORS.purple;
+    drawSectionTitle(guide.area, guideColor);
     
-    const halfWidth = (contentWidth - 10) / 2;
+    const boxWidth = (contentWidth - 10) / 2;
     
-    doc.setFillColor(COLORS.success[0], COLORS.success[1], COLORS.success[2], 0.1);
-    doc.roundedRect(margin, yPos, halfWidth, 35, 3, 3, 'F');
+    doc.setFillColor(230, 255, 230);
+    doc.roundedRect(margin, yPos, boxWidth, 32, 2, 2, 'F');
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
-    doc.text('✓ What to DO', margin + 3, yPos + 7);
+    doc.text('What to DO', margin + 3, yPos + 6);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
     guide.whatToDo.slice(0, 3).forEach((item, i) => {
-      const lines = doc.splitTextToSize(`• ${item}`, halfWidth - 8);
-      doc.text(lines[0], margin + 3, yPos + 14 + (i * 7));
+      const cleanText = sanitizeText(item);
+      const lines = doc.splitTextToSize(`- ${cleanText}`, boxWidth - 6);
+      doc.text(lines[0], margin + 3, yPos + 13 + (i * 6));
     });
     
-    doc.setFillColor(COLORS.rose[0], COLORS.rose[1], COLORS.rose[2], 0.1);
-    doc.roundedRect(margin + halfWidth + 10, yPos, halfWidth, 35, 3, 3, 'F');
+    doc.setFillColor(255, 230, 230);
+    doc.roundedRect(margin + boxWidth + 10, yPos, boxWidth, 32, 2, 2, 'F');
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(COLORS.rose[0], COLORS.rose[1], COLORS.rose[2]);
-    doc.text('✗ What to AVOID', margin + halfWidth + 13, yPos + 7);
+    doc.text('What to AVOID', margin + boxWidth + 13, yPos + 6);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
     guide.whatToAvoid.slice(0, 3).forEach((item, i) => {
-      const lines = doc.splitTextToSize(`• ${item}`, halfWidth - 8);
-      doc.text(lines[0], margin + halfWidth + 13, yPos + 14 + (i * 7));
+      const cleanText = sanitizeText(item);
+      const lines = doc.splitTextToSize(`- ${cleanText}`, boxWidth - 6);
+      doc.text(lines[0], margin + boxWidth + 13, yPos + 13 + (i * 6));
     });
     
-    yPos += 42;
+    yPos += 40;
   });
 
   // ========== PAGE 7: 30-DAY GROWTH PLAN ==========
   addNewPage();
   
   doc.setFillColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
-  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.rect(0, 0, pageWidth, 35, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('30-DAY GROWTH PLAN', pageWidth / 2, 25, { align: 'center' });
-  yPos = 50;
+  doc.text('30-DAY GROWTH PLAN', pageWidth / 2, 22, { align: 'center' });
+  yPos = 45;
   
-  const weekColors = [COLORS.info, COLORS.purple, COLORS.teal, COLORS.orange];
+  const weekColors: [number, number, number][] = [COLORS.info, COLORS.purple, COLORS.teal, COLORS.orange];
   report.growthPlan.forEach((week, i) => {
-    checkPageBreak(50);
+    checkPageBreak(45);
     const weekColor = weekColors[i % weekColors.length];
     
     doc.setFillColor(weekColor[0], weekColor[1], weekColor[2]);
-    doc.roundedRect(margin, yPos, 50, 12, 3, 3, 'F');
+    doc.roundedRect(margin, yPos, 45, 10, 2, 2, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Week ${week.week}`, margin + 10, yPos + 8);
+    doc.text(`Week ${week.week}`, margin + 8, yPos + 7);
     
     doc.setTextColor(weekColor[0], weekColor[1], weekColor[2]);
-    doc.setFontSize(12);
-    doc.text(week.focus, margin + 55, yPos + 8);
-    yPos += 16;
+    doc.setFontSize(11);
+    doc.text(sanitizeText(week.focus), margin + 50, yPos + 7);
+    yPos += 14;
     
     doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
-    doc.roundedRect(margin, yPos, contentWidth, 30, 3, 3, 'F');
+    doc.roundedRect(margin, yPos, contentWidth, 26, 2, 2, 'F');
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-    doc.text('Activities:', margin + 5, yPos + 8);
+    doc.text('Activities:', margin + 4, yPos + 7);
     doc.setFont('helvetica', 'normal');
-    doc.text(week.activities.join(' • '), margin + 28, yPos + 8);
+    const activitiesText = sanitizeText(week.activities.join(' | '));
+    const actLines = doc.splitTextToSize(activitiesText, contentWidth - 35);
+    doc.text(actLines[0], margin + 25, yPos + 7);
     
     doc.setFont('helvetica', 'bold');
-    doc.text('Goals:', margin + 5, yPos + 18);
+    doc.text('Goals:', margin + 4, yPos + 16);
     doc.setFont('helvetica', 'normal');
-    const goalText = week.goals.join(' • ');
-    const goalLines = doc.splitTextToSize(goalText, contentWidth - 35);
-    doc.text(goalLines[0], margin + 20, yPos + 18);
+    const goalsText = sanitizeText(week.goals.join(' | '));
+    const goalLines = doc.splitTextToSize(goalsText, contentWidth - 25);
+    doc.text(goalLines[0], margin + 20, yPos + 16);
     
-    yPos += 38;
+    yPos += 32;
   });
 
   // ========== PAGE 8: ACTIVITY RECOMMENDATIONS ==========
   addNewPage();
   
   doc.setFillColor(COLORS.secondary[0], COLORS.secondary[1], COLORS.secondary[2]);
-  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.rect(0, 0, pageWidth, 35, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('ACTIVITY RECOMMENDATIONS', pageWidth / 2, 25, { align: 'center' });
-  yPos = 50;
+  doc.text('ACTIVITY RECOMMENDATIONS', pageWidth / 2, 22, { align: 'center' });
+  yPos = 45;
   
   const activities = [
-    { name: '🧘 Yoga Poses', items: report.activityRecommendations.yogaPoses, color: COLORS.purple },
-    { name: '🧩 Brain Games', items: report.activityRecommendations.brainGames, color: COLORS.info },
-    { name: '🌳 Outdoor Activities', items: report.activityRecommendations.outdoorActivities, color: COLORS.success },
-    { name: '🎨 Art Activities', items: report.activityRecommendations.artActivities, color: COLORS.accent },
-    { name: '🎯 Focus Exercises', items: report.activityRecommendations.focusExercises, color: COLORS.orange },
-    { name: '💪 Confidence Building', items: report.activityRecommendations.confidenceBuilding, color: COLORS.teal },
+    { name: 'Yoga Poses', items: report.activityRecommendations.yogaPoses, color: COLORS.purple },
+    { name: 'Brain Games', items: report.activityRecommendations.brainGames, color: COLORS.info },
+    { name: 'Outdoor Activities', items: report.activityRecommendations.outdoorActivities, color: COLORS.success },
+    { name: 'Art Activities', items: report.activityRecommendations.artActivities, color: COLORS.accent },
+    { name: 'Focus Exercises', items: report.activityRecommendations.focusExercises, color: COLORS.orange },
+    { name: 'Confidence Building', items: report.activityRecommendations.confidenceBuilding, color: COLORS.teal },
   ];
   
   const cardWidth = (contentWidth - 10) / 2;
-  const cardHeight = 38;
+  const cardHeight = 35;
   
   activities.forEach((act, i) => {
     const row = Math.floor(i / 2);
     const col = i % 2;
     const x = margin + col * (cardWidth + 10);
-    const y = yPos + row * (cardHeight + 8);
+    const y = yPos + row * (cardHeight + 6);
     
     if (y > pageHeight - margin - cardHeight) {
       addNewPage();
@@ -627,170 +692,176 @@ function generatePDF(report: ReportData): void {
     }
     
     doc.setFillColor(act.color[0], act.color[1], act.color[2]);
-    doc.roundedRect(x, y, cardWidth, 10, 2, 2, 'F');
+    doc.roundedRect(x, y, cardWidth, 9, 2, 2, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text(act.name, x + 3, y + 7);
+    doc.text(act.name, x + 3, y + 6);
     
     doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
-    doc.roundedRect(x, y + 10, cardWidth, cardHeight - 10, 2, 2, 'F');
+    doc.roundedRect(x, y + 9, cardWidth, cardHeight - 9, 2, 2, 'F');
     
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
     act.items.slice(0, 3).forEach((item, j) => {
-      doc.text(`• ${item.substring(0, 35)}`, x + 3, y + 18 + (j * 7));
+      const cleanText = sanitizeText(item);
+      doc.text(`- ${cleanText.substring(0, 38)}`, x + 3, y + 17 + (j * 6));
     });
   });
-  yPos += Math.ceil(activities.length / 2) * (cardHeight + 8) + 10;
+  yPos += Math.ceil(activities.length / 2) * (cardHeight + 6) + 10;
 
   // ========== PAGE 9: NUTRITION GUIDANCE ==========
   addNewPage();
   
   doc.setFillColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
-  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.rect(0, 0, pageWidth, 35, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('NUTRITION GUIDANCE', pageWidth / 2, 25, { align: 'center' });
-  yPos = 50;
+  doc.text('NUTRITION GUIDANCE', pageWidth / 2, 22, { align: 'center' });
+  yPos = 45;
   
   const nutritionSections = [
-    { name: '🧠 Brain-Boosting Foods', items: report.nutritionGuidance.brainBoosting, color: COLORS.info },
-    { name: '🎯 Foods for Concentration', items: report.nutritionGuidance.concentration, color: COLORS.purple },
-    { name: '😊 Mood-Stabilizing Foods', items: report.nutritionGuidance.moodStabilizing, color: COLORS.success },
-    { name: '📋 Weekly Diet Tips', items: report.nutritionGuidance.weeklyTips, color: COLORS.teal },
-    { name: '⚠️ Foods to Reduce', items: report.nutritionGuidance.toReduce, color: COLORS.rose },
+    { name: 'Brain-Boosting Foods', items: report.nutritionGuidance.brainBoosting, color: COLORS.info },
+    { name: 'Foods for Concentration', items: report.nutritionGuidance.concentration, color: COLORS.purple },
+    { name: 'Mood-Stabilizing Foods', items: report.nutritionGuidance.moodStabilizing, color: COLORS.success },
+    { name: 'Weekly Diet Tips', items: report.nutritionGuidance.weeklyTips, color: COLORS.teal },
+    { name: 'Foods to Reduce', items: report.nutritionGuidance.toReduce, color: COLORS.rose },
   ];
   
   nutritionSections.forEach(section => {
-    checkPageBreak(30);
-    drawColoredHeader(section.name, section.color);
+    checkPageBreak(28);
+    drawSectionTitle(section.name, section.color);
     section.items.forEach(item => {
-      drawColoredBullet(item, section.color, 3);
+      drawBulletPoint(item, section.color, 3);
     });
-    yPos += 5;
+    yPos += 3;
   });
 
   // ========== PAGE 10: SCHOOL SUGGESTIONS ==========
   addNewPage();
   
   doc.setFillColor(COLORS.info[0], COLORS.info[1], COLORS.info[2]);
-  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.rect(0, 0, pageWidth, 35, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('SCHOOL SUGGESTIONS', pageWidth / 2, 25, { align: 'center' });
-  yPos = 50;
+  doc.text('SCHOOL SUGGESTIONS', pageWidth / 2, 22, { align: 'center' });
+  yPos = 45;
   
   const schoolSections = [
-    { name: '💺 Seating Recommendations', items: report.schoolSuggestions.seating, color: COLORS.info },
-    { name: '📝 Homework Routine Tips', items: report.schoolSuggestions.homework, color: COLORS.purple },
-    { name: '👩‍🏫 Teacher Communication', items: report.schoolSuggestions.teacherCommunication, color: COLORS.teal },
-    { name: '❤️ Emotional Support Needed', items: report.schoolSuggestions.emotionalSupport, color: COLORS.rose },
-    { name: '🎯 Focus Strategies for School', items: report.schoolSuggestions.focusStrategies, color: COLORS.orange },
+    { name: 'Seating Recommendations', items: report.schoolSuggestions.seating, color: COLORS.info },
+    { name: 'Homework Routine Tips', items: report.schoolSuggestions.homework, color: COLORS.purple },
+    { name: 'Teacher Communication', items: report.schoolSuggestions.teacherCommunication, color: COLORS.teal },
+    { name: 'Emotional Support Needed', items: report.schoolSuggestions.emotionalSupport, color: COLORS.rose },
+    { name: 'Focus Strategies for School', items: report.schoolSuggestions.focusStrategies, color: COLORS.orange },
   ];
   
   schoolSections.forEach(section => {
-    checkPageBreak(30);
-    drawColoredHeader(section.name, section.color);
+    checkPageBreak(28);
+    drawSectionTitle(section.name, section.color);
     section.items.forEach(item => {
-      drawColoredBullet(item, section.color, 3);
+      drawBulletPoint(item, section.color, 3);
     });
-    yPos += 5;
+    yPos += 3;
   });
 
   // ========== PAGE 11: BONUS INSIGHTS ==========
   addNewPage();
   
   doc.setFillColor(COLORS.purple[0], COLORS.purple[1], COLORS.purple[2]);
-  doc.rect(0, 0, pageWidth, 40, 'F');
+  doc.rect(0, 0, pageWidth, 35, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('BONUS INSIGHTS', pageWidth / 2, 25, { align: 'center' });
-  yPos = 50;
+  doc.text('BONUS INSIGHTS', pageWidth / 2, 22, { align: 'center' });
+  yPos = 45;
   
-  drawColoredHeader('PERSONALITY SNAPSHOT', COLORS.accent, '✨');
+  drawSectionTitle('PERSONALITY SNAPSHOT', COLORS.accent);
   report.bonusInsights.personalitySnapshot.forEach(trait => {
-    drawColoredBullet(trait, COLORS.accent, 3);
+    drawBulletPoint(trait, COLORS.accent, 3);
   });
-  yPos += 10;
+  yPos += 8;
   
-  drawColoredHeader('KEY METRICS', COLORS.info, '📊');
-  yPos += 5;
+  drawSectionTitle('KEY METRICS', COLORS.info);
+  yPos += 3;
   
-  const chartRadius = 20;
-  const chartSpacing = (contentWidth - chartRadius * 6) / 4;
+  const chartRadius = 18;
+  const chartSpacing = contentWidth / 3;
   
-  drawPieChart(margin + chartRadius + chartSpacing, yPos + chartRadius, chartRadius, 
+  drawPieChart(margin + chartSpacing / 2, yPos + chartRadius, chartRadius, 
                report.bonusInsights.confidenceMeter, COLORS.success, 'Confidence');
-  drawPieChart(pageWidth / 2, yPos + chartRadius, chartRadius,
+  drawPieChart(margin + chartSpacing * 1.5, yPos + chartRadius, chartRadius,
                report.bonusInsights.attentionIndex, COLORS.info, 'Attention');
-  drawPieChart(pageWidth - margin - chartRadius - chartSpacing, yPos + chartRadius, chartRadius,
+  drawPieChart(margin + chartSpacing * 2.5, yPos + chartRadius, chartRadius,
                report.bonusInsights.emotionalStability, COLORS.purple, 'Emotional Stability');
   
-  yPos += chartRadius * 2 + 20;
+  yPos += chartRadius * 2 + 18;
   
-  drawColoredHeader('RECOMMENDED PARENTING STYLE', COLORS.teal, '👨‍👩‍👧');
+  drawSectionTitle('RECOMMENDED PARENTING STYLE', COLORS.teal);
   doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
-  doc.roundedRect(margin, yPos, contentWidth, 25, 4, 4, 'F');
-  doc.setFontSize(10);
+  doc.roundedRect(margin, yPos, contentWidth, 22, 3, 3, 'F');
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-  const parentingLines = doc.splitTextToSize(report.bonusInsights.parentingStyleRecommendation, contentWidth - 10);
-  doc.text(parentingLines, margin + 5, yPos + 10);
+  const parentingText = sanitizeText(report.bonusInsights.parentingStyleRecommendation);
+  const parentingLines = doc.splitTextToSize(parentingText, contentWidth - 10);
+  doc.text(parentingLines, margin + 5, yPos + 8);
 
   // ========== FINAL PAGE: CONCLUSION ==========
   addNewPage();
   
   doc.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-  doc.rect(0, 0, pageWidth, 70, 'F');
+  doc.rect(0, 0, pageWidth, 60, 'F');
   
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
+  doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
-  doc.text('CONCLUSION', pageWidth / 2, 40, { align: 'center' });
-  
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Thank you for trusting Smart Study Zone', pageWidth / 2, 55, { align: 'center' });
-  
-  yPos = 85;
-  
-  doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
-  doc.roundedRect(margin, yPos, contentWidth, 50, 5, 5, 'F');
+  doc.text('CONCLUSION', pageWidth / 2, 35, { align: 'center' });
   
   doc.setFontSize(11);
-  doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-  const messageLines = doc.splitTextToSize(report.conclusion.message, contentWidth - 20);
-  doc.text(messageLines, margin + 10, yPos + 15);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Thank you for trusting Growing Mind', pageWidth / 2, 48, { align: 'center' });
   
-  yPos += 65;
+  yPos = 75;
+  
+  doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
+  doc.roundedRect(margin, yPos, contentWidth, 45, 4, 4, 'F');
+  
+  doc.setFontSize(10);
+  doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
+  const messageText = sanitizeText(report.conclusion.message);
+  const messageLines = doc.splitTextToSize(messageText, contentWidth - 15);
+  doc.text(messageLines, margin + 8, yPos + 12);
+  
+  yPos += 55;
   
   doc.setFillColor(COLORS.secondary[0], COLORS.secondary[1], COLORS.secondary[2]);
-  doc.roundedRect(margin, yPos, contentWidth, 40, 5, 5, 'F');
+  doc.roundedRect(margin, yPos, contentWidth, 35, 4, 4, 'F');
   
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'italic');
-  const encouragementLines = doc.splitTextToSize(`"${report.conclusion.encouragement}"`, contentWidth - 20);
-  doc.text(encouragementLines, margin + 10, yPos + 15);
+  const encouragementText = sanitizeText(report.conclusion.encouragement);
+  const encouragementLines = doc.splitTextToSize(`"${encouragementText}"`, contentWidth - 15);
+  doc.text(encouragementLines, margin + 8, yPos + 12);
   
   yPos = pageHeight - 30;
-  doc.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-  doc.roundedRect(margin, yPos, contentWidth, 20, 3, 3, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(10);
+  doc.setFillColor(COLORS.gold[0], COLORS.gold[1], COLORS.gold[2]);
+  doc.roundedRect(margin, yPos, contentWidth, 18, 2, 2, 'F');
+  doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text('Smart Study Zone', pageWidth / 2, yPos + 8, { align: 'center' });
+  doc.text('Growing Mind', pageWidth / 2, yPos + 7, { align: 'center' });
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text('Empowering Children\'s Growth Through Personalized Learning', pageWidth / 2, yPos + 14, { align: 'center' });
+  doc.text("Children's Future - Empowering Growth Through Science", pageWidth / 2, yPos + 13, { align: 'center' });
 
-  // Save the PDF with cross-device compatible download
-  const filename = `${report.coverPage.childName.replace(/\s+/g, '_')}_${report.coverPage.assessmentType.replace(/\s+/g, '_')}_Report.pdf`;
+  // Save the PDF
+  const childNameClean = sanitizeText(report.coverPage.childName).replace(/\s+/g, '_');
+  const assessmentClean = sanitizeText(report.coverPage.assessmentType).replace(/\s+/g, '_');
+  const filename = `${childNameClean}_${assessmentClean}_Report.pdf`;
   
   const pdfBlob = doc.output('blob');
   const blobUrl = URL.createObjectURL(pdfBlob);
@@ -846,9 +917,9 @@ export default function ReportPDFGenerator({
       setGenerationProgress(90);
       return report as ReportData;
     },
-    onSuccess: (report) => {
+    onSuccess: async (report) => {
       setGenerationProgress(100);
-      generatePDF(report);
+      await generatePDF(report);
       toast({
         title: "Report Generated!",
         description: `${assessmentTypeName} report for ${childName} has been downloaded.`,
@@ -918,7 +989,7 @@ export default function ReportPDFGenerator({
             <Progress value={generationProgress} className="h-2" />
             <p className="text-xs text-gray-500 mt-1 text-center">
               {generationProgress < 30 ? 'Analyzing assessment data...' :
-               generationProgress < 70 ? 'Generating personalized insights with AI...' :
+               generationProgress < 70 ? 'Generating personalized insights...' :
                generationProgress < 100 ? 'Creating PDF report...' : 'Complete!'}
             </p>
           </div>
