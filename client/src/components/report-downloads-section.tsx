@@ -16,12 +16,12 @@ interface ReportDownloadsSectionProps {
   childName: string;
 }
 
-const ASSESSMENT_TYPE_NAMES: Record<string, string> = {
-  'behavioral': 'Child Behavioral Assessment',
+const ASSESSMENT_TYPE_DISPLAY_NAMES: Record<string, string> = {
+  'child_behavioral': 'Child Behavioral Assessment',
   'personality': 'Personality Assessment',
   'iq': 'IQ Assessment',
   'career': 'Career Assessment',
-  'strengths-weakness': 'Strengths & Weakness Assessment',
+  'strengths_weakness': 'Strengths & Weakness Assessment',
 };
 
 export default function ReportDownloadsSection({ childId, childName }: ReportDownloadsSectionProps) {
@@ -80,7 +80,8 @@ export default function ReportDownloadsSection({ childId, childName }: ReportDow
                   childId={childId}
                   childName={childName}
                   assessmentTypeId={report.assessmentTypeId}
-                  assessmentTypeName={ASSESSMENT_TYPE_NAMES[report.assessmentTypeId] || report.assessmentTypeName}
+                  assessmentTypeName={ASSESSMENT_TYPE_DISPLAY_NAMES[report.assessmentTypeName] || report.assessmentTypeName}
+                  assessmentTypeKey={report.assessmentTypeName}
                   isCompleted={report.isCompleted}
                 />
               ))}

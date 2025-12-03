@@ -102,6 +102,7 @@ interface ReportGeneratorProps {
   childName: string;
   assessmentTypeId: string;
   assessmentTypeName: string;
+  assessmentTypeKey: string;
   isCompleted: boolean;
 }
 
@@ -490,6 +491,7 @@ export default function ReportPDFGenerator({
   childName, 
   assessmentTypeId, 
   assessmentTypeName,
+  assessmentTypeKey,
   isCompleted 
 }: ReportGeneratorProps) {
   const { toast } = useToast();
@@ -527,14 +529,14 @@ export default function ReportPDFGenerator({
   });
 
   const assessmentIcons: Record<string, any> = {
-    'behavioral': Brain,
+    'child_behavioral': Brain,
     'personality': Heart,
     'iq': Target,
     'career': GraduationCap,
-    'strengths-weakness': Sparkles,
+    'strengths_weakness': Sparkles,
   };
 
-  const Icon = assessmentIcons[assessmentTypeId] || FileText;
+  const Icon = assessmentIcons[assessmentTypeKey] || FileText;
 
   return (
     <Card className={`transition-all ${isCompleted ? 'hover:shadow-lg cursor-pointer' : 'opacity-60'}`}>
