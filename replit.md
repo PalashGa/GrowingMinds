@@ -250,3 +250,35 @@ Preferred communication style: Simple, everyday language.
 ### Data Visualization
 - **Recharts**: Chart library for progress tracking and analytics
 - **Progress Components**: Custom progress visualization for child development metrics
+
+### AI-Powered Report Generation
+- **OpenAI Integration**: Uses Replit AI Integrations for GPT-4o-mini access
+- **jsPDF**: Client-side PDF generation library
+- **Personalized Reports**: AI-generated insights based on assessment answers
+
+### PDF Report System
+- **Comprehensive Assessment Reports** for all 5 assessment types:
+  - Child Behavioral Assessment
+  - Personality Assessment
+  - IQ Assessment
+  - Career Assessment
+  - Strengths & Weakness Assessment
+
+- **Report Sections (12-25 pages)**:
+  1. Cover Page: Child info, test date, assessment type
+  2. Executive Summary: Overall score, strengths, growth areas, recommendations
+  3. Behavioral Insights: Per-question analysis, domain scores with charts
+  4. Strengths Analysis: Academic, behavioral, social, emotional, cognitive
+  5. Areas of Improvement: Focused areas with patterns and reasons
+  6. Parent Guidance: What to do/avoid, communication strategies, routines
+  7. 30-Day Growth Plan: Weekly targets for emotions, attention, habits, social
+  8. Activity Recommendations: Yoga, brain games, outdoor, art, focus exercises
+  9. Nutrition Guidance: Brain-boosting foods, concentration, mood-stabilizing
+  10. School Suggestions: Seating, homework, teacher communication
+  11. Progress Tracking: Weekly goals and tracking tables
+  12. Conclusion: Positive message and encouragement
+  13. Bonus Insights: Personality snapshot, confidence meter, attention index
+
+- **API Endpoints**:
+  - POST `/api/reports/generate`: Generate AI-powered report data
+  - GET `/api/children/:childId/available-reports`: List available reports per child
