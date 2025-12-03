@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/queryClient";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import ProgressChart from "@/components/progress-chart";
+import ReportDownloadsSection from "@/components/report-downloads-section";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -360,6 +361,12 @@ export default function Dashboard() {
                     <ProgressChart childId={child.id} />
                   </CardContent>
                 </Card>
+
+                {/* Report Downloads Section */}
+                <ReportDownloadsSection 
+                  childId={child.id} 
+                  childName={child.name}
+                />
 
                 {/* Recent Assessments */}
                 <Card data-testid={`card-recent-assessments-${child.id}`}>
