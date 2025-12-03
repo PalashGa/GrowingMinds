@@ -152,7 +152,9 @@ export async function generateReport(assessmentData: AssessmentData): Promise<Ge
     `${d.name}: ${d.score}% (${d.category})`
   ).join(", ");
 
-  const prompt = `You are a child development expert. Based on this ${assessmentData.assessmentTypeName} assessment for ${assessmentData.childName} (age ${assessmentData.childAge}), generate a comprehensive personalized report.
+  const prompt = `You are an expert child development specialist. Interpret the child's test results using only the provided score ranges.
+
+Based on this ${assessmentData.assessmentTypeName} assessment for ${assessmentData.childName} (age ${assessmentData.childAge}), generate a comprehensive personalized report.
 
 ASSESSMENT DATA:
 ${answersText}
@@ -162,30 +164,26 @@ ${domainsText}
 
 OVERALL SCORE: ${overallScore}% (${scoreCategory})
 
-IMPORTANT: For the "questionAnalysis" field, analyze EACH question and its answer to provide a detailed behavior interpretation. 
+SCORE INTERPRETATION RANGES:
+- 80-100%: Excellent - Child shows strong development in this area
+- 60-79%: Good - Child is developing well with minor areas to enhance  
+- 40-59%: Developing - Child needs focused support and practice
+- Below 40%: Needs Support - Requires immediate attention and intervention
 
-Example format for questionAnalysis:
-If Q1 is "I feel angry when someone changes my things" and Answer = "Often (4)", return:
-{
-  "question": "I feel angry when someone changes my things",
-  "answer": "Often",
-  "interpretation": "The child experiences frustration when their personal space is disturbed. This indicates sensitivity to routine changes and a need for control or predictability."
-}
+IMPORTANT: For "questionAnalysis", provide a 2-line behavior interpretation for EACH question based on the answer given.
 
-Generate interpretations that explain:
-1. What this specific answer reveals about the child's behavior
-2. The underlying emotional or developmental pattern
-3. Whether this is typical for their age or needs attention
+Example format:
+Q1 Answer: "Often" -> interpretation: "The child experiences frustration when personal space is disturbed. This indicates sensitivity to routine changes and need for predictability."
 
-Generate a detailed JSON response with the following structure. Be specific, actionable, and positive while addressing areas for improvement. Tailor everything to the child's age (${assessmentData.childAge} years).
+Generate a detailed JSON response. Be specific, actionable, and positive while addressing areas for improvement. Tailor everything to the child's age (${assessmentData.childAge} years).
 
 {
   "strengthAreas": ["5 specific strengths based on high-scoring answers"],
   "growthAreas": ["3-4 areas needing improvement based on low-scoring answers"],
   "recommendations": ["3 major personalized recommendations"],
   "parentActionChecklist": ["5 immediate actionable items for parents"],
-  "questionAnalysis": [{"question": "Q1 text", "answer": "The answer given", "interpretation": "Detailed behavior interpretation explaining what this answer reveals about the child, the underlying pattern, and developmental significance"}],
-  "domainInterpretations": [{"domain": "Domain name", "interpretation": "Detailed interpretation"}],
+  "questionAnalysis": [{"question": "Q1", "answer": "The answer given", "interpretation": "2-line behavior interpretation explaining what this answer reveals and the underlying developmental pattern"}],
+  "domainInterpretations": [{"domain": "Domain name", "interpretation": "Detailed interpretation based on score ranges"}],
   "strengths": {
     "academic": ["2-3 academic strengths"],
     "behavioral": ["2-3 behavioral strengths"],
@@ -195,7 +193,12 @@ Generate a detailed JSON response with the following structure. Be specific, act
   },
   "improvements": [{"area": "Area name", "reason": "Why this matters", "pattern": "What patterns indicate this"}],
   "parentGuidance": [{"area": "Focus area", "whatToDo": ["3 actions"], "whatToAvoid": ["2 things to avoid"], "communicationStrategies": ["2 strategies"], "routines": ["2 suggested routines"]}],
-  "weeklyPlan": [{"week": 1, "focus": "Focus area", "activities": ["3 activities"], "goals": ["2 weekly goals"]}],
+  "weeklyPlan": [
+    {"week": 1, "focus": "Week 1 Focus Area", "activities": ["3 activities"], "goals": ["2 weekly goals"]},
+    {"week": 2, "focus": "Week 2 Focus Area", "activities": ["3 activities"], "goals": ["2 weekly goals"]},
+    {"week": 3, "focus": "Week 3 Focus Area", "activities": ["3 activities"], "goals": ["2 weekly goals"]},
+    {"week": 4, "focus": "Week 4 Focus Area", "activities": ["3 activities"], "goals": ["2 weekly goals"]}
+  ],
   "activities": {
     "yogaPoses": ["3 child-friendly yoga poses with benefits"],
     "brainGames": ["3 brain games"],

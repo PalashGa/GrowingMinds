@@ -452,35 +452,37 @@ async function generatePDF(report: ReportData): Promise<void> {
   drawSectionTitle('QUESTION-BY-QUESTION BEHAVIOUR INTERPRETATIONS', COLORS.purple);
   
   report.behavioralInsights.questionAnalysis.forEach((qa, i) => {
-    checkPageBreak(32);
+    checkPageBreak(28);
     
     const cardColors: [number, number, number][] = [COLORS.primary, COLORS.secondary, COLORS.accent, COLORS.info, COLORS.purple, COLORS.teal, COLORS.orange, COLORS.rose];
     const cardColor = cardColors[i % cardColors.length];
     
     doc.setFillColor(cardColor[0], cardColor[1], cardColor[2]);
-    doc.roundedRect(margin, yPos, contentWidth, 6, 1, 1, 'F');
+    doc.roundedRect(margin, yPos, 25, 6, 1, 1, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Q${i + 1}: ${sanitizeText(qa.question).substring(0, 70)}${qa.question.length > 70 ? '...' : ''} | Answer: ${sanitizeText(qa.answer)}`, margin + 3, yPos + 4);
-    yPos += 7;
+    doc.text(`Q${i + 1}`, margin + 8, yPos + 4);
+    
+    doc.setFillColor(240, 240, 245);
+    doc.roundedRect(margin + 27, yPos, 35, 6, 1, 1, 'F');
+    doc.setTextColor(cardColor[0], cardColor[1], cardColor[2]);
+    doc.setFontSize(8);
+    doc.text(`Ans: ${sanitizeText(qa.answer)}`, margin + 29, yPos + 4);
+    yPos += 8;
     
     doc.setFillColor(250, 250, 252);
-    doc.roundedRect(margin, yPos, contentWidth, 18, 2, 2, 'F');
-    
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(cardColor[0], cardColor[1], cardColor[2]);
-    doc.text('Behaviour Interpretation:', margin + 3, yPos + 5);
+    doc.roundedRect(margin, yPos, contentWidth, 16, 2, 2, 'F');
     
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
     const insightText = sanitizeText(qa.meaning);
-    const insightLines = doc.splitTextToSize(insightText, contentWidth - 8);
-    doc.text(insightLines.slice(0, 2).join(' '), margin + 3, yPos + 11);
+    const insightLines = doc.splitTextToSize(insightText, contentWidth - 6);
+    doc.text(insightLines[0] || '', margin + 3, yPos + 5);
+    doc.text(insightLines[1] || '', margin + 3, yPos + 11);
     
-    yPos += 22;
+    yPos += 20;
   });
 
   // ========== PAGE 4: STRENGTHS ANALYSIS ==========
