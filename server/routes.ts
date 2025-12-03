@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertChildSchema, insertAssessmentResultSchema, insertYogaSessionSchema, insertYogaPoseSessionSchema, insertNutritionPlanSchema, insertGameScoreSchema } from "@shared/schema";
 import { z } from "zod";
+import { generateReport, getAssessmentDataForReport } from "./reportService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -299,6 +300,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Note: Payment features have been removed to run without Stripe integration
+
+  // Report Generation API
+  app.post('/api/reports/generate', isAuthenticated, async (req: any, res) => {
+    try {
+      const { childId, assessmentTypeId } = req.body;
+      
+      if (!childId || !assessmentTypeId) {
+        return res.status(400).json({ message: "childId and assessmentTypeId are required" });
+      }
+
+      // Verify child belongs to user
+      const child = await storage.getChild(childId);
+      if (!child || child.parentId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const assessmentData = await getAssessmentDataForReport(childId, assessmentTypeId);
+      if (!assessmentData) {
+        return res.status(404).json({ message: "Assessment data not found. Please complete the assessment first." });
+      }
+
+      const report = await generateReport(assessmentData);
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating report:", error);
+      res.status(500).json({ message: "Failed to generate report. Please try again." });
+    }
+  });
+
+  // Get available reports for a child
+  app.get('/api/children/:childId/available-reports', isAuthenticated, async (req: any, res) => {
+    try {
+      const child = await storage.getChild(req.params.childId);
+      if (!child || child.parentId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const assessmentResults = await storage.getAssessmentResults(req.params.childId);
+      const assessmentTypes = await storage.getAssessmentTypes();
+
+      const availableReports = assessmentTypes.map(type => {
+        const result = assessmentResults.find(r => r.assessmentTypeId === type.id);
+        return {
+          assessmentTypeId: type.id,
+          assessmentTypeName: type.name,
+          isCompleted: !!result,
+          completedAt: result?.completedAt || null
+        };
+      });
+
+      res.json(availableReports);
+    } catch (error) {
+      console.error("Error fetching available reports:", error);
+      res.status(500).json({ message: "Failed to fetch available reports" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
