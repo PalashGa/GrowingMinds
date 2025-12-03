@@ -217,7 +217,7 @@ Ensure all content is age-appropriate for a ${assessmentData.childAge}-year-old 
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1-mini",
       messages: [
         { role: "system", content: "You are a child development expert who creates detailed, personalized assessment reports. Always respond with valid JSON only, no markdown formatting." },
         { role: "user", content: prompt }

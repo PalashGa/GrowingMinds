@@ -252,7 +252,7 @@ Preferred communication style: Simple, everyday language.
 - **Progress Components**: Custom progress visualization for child development metrics
 
 ### AI-Powered Report Generation
-- **OpenAI Integration**: Uses Replit AI Integrations for GPT-4o-mini access
+- **OpenAI Integration**: Uses Replit AI Integrations for GPT-4.1-mini access
 - **jsPDF**: Client-side PDF generation library
 - **Personalized Reports**: AI-generated insights based on assessment answers
 
