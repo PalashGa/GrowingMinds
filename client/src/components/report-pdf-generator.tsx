@@ -481,9 +481,44 @@ function generatePDF(report: ReportData): void {
   doc.text('Smart Study Zone - Child Development Platform', pageWidth / 2, yPos, { align: 'center' });
   doc.text('www.smartstudyzone.com', pageWidth / 2, yPos + 6, { align: 'center' });
 
-  // Save the PDF
+  // Save the PDF with cross-device compatible download
   const filename = `${report.coverPage.childName.replace(/\s+/g, '_')}_${report.coverPage.assessmentType.replace(/\s+/g, '_')}_Report.pdf`;
-  doc.save(filename);
+  
+  // Create blob from PDF
+  const pdfBlob = doc.output('blob');
+  const blobUrl = URL.createObjectURL(pdfBlob);
+  
+  // Try multiple download methods for better device compatibility
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  if (isMobile) {
+    // For mobile: Open in new tab (more reliable on mobile browsers)
+    const newWindow = window.open(blobUrl, '_blank');
+    if (!newWindow) {
+      // If popup blocked, create download link
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  } else {
+    // For desktop: Use download link approach
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+  
+  // Clean up blob URL after a delay
+  setTimeout(() => {
+    URL.revokeObjectURL(blobUrl);
+  }, 5000);
 }
 
 export default function ReportPDFGenerator({ 
