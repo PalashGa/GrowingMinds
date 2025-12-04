@@ -458,6 +458,33 @@ export default function Robotics() {
   const selectedChild = children?.find(child => child.id === selectedChildId);
   const childAge = selectedChild?.age || 10;
 
+  const updateProgressMutation = useMutation({
+    mutationFn: async (data: { childId: string; moduleId: string; progress: number; status: string }) => {
+      const response = await apiRequest("PUT", "/api/robotics-progress", {
+        childId: data.childId,
+        moduleId: data.moduleId,
+        progress: data.progress,
+        status: data.status,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/children', selectedChildId, 'robotics-progress'] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+      }
+    },
+  });
+
   const handleOpenModule = (module: typeof ROBOTICS_BASICS_MODULES[0]) => {
     setSelectedModule(module);
     setIsModuleDialogOpen(true);
@@ -465,9 +492,19 @@ export default function Robotics() {
 
   const handleCompleteModule = (moduleId: string) => {
     setCompletedModules(prev => new Set(Array.from(prev).concat([moduleId])));
+    
+    if (selectedChildId) {
+      updateProgressMutation.mutate({
+        childId: selectedChildId,
+        moduleId: moduleId,
+        progress: 100,
+        status: 'completed',
+      });
+    }
+    
     toast({
       title: "Module Completed! 🎉",
-      description: "Great job! You've completed this robotics module.",
+      description: "Great job! You've completed this robotics module. Progress saved!",
     });
   };
 

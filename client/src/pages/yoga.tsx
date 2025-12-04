@@ -234,6 +234,34 @@ export default function Yoga() {
     },
   });
 
+  const savePoseSessionMutation = useMutation({
+    mutationFn: async (data: { childId: string; poseId: string; duration: number; notes?: string }) => {
+      const response = await apiRequest("POST", "/api/yoga/pose-sessions", {
+        childId: data.childId,
+        poseId: data.poseId,
+        duration: data.duration,
+        completedAt: new Date(),
+        notes: data.notes,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/children', selectedChildId, 'yoga-pose-sessions'] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+      }
+    },
+  });
+
   const selectedChild = children?.find(child => child.id === selectedChildId);
   const childAge = selectedChild?.age || 10;
 
@@ -389,9 +417,19 @@ export default function Yoga() {
   const handleCompletePractice = () => {
     setIsPracticing(false);
     if (timerRef.current) clearInterval(timerRef.current);
+    
+    if (selectedChildId && selectedPose && practiceTime > 0) {
+      savePoseSessionMutation.mutate({
+        childId: selectedChildId,
+        poseId: selectedPose.id,
+        duration: practiceTime,
+        notes: `Practiced ${selectedPose.name}`,
+      });
+    }
+    
     toast({
       title: "🎉 Great Job!",
-      description: `You practiced ${selectedPose?.name} for ${formatTime(practiceTime)}!`,
+      description: `You practiced ${selectedPose?.name} for ${formatTime(practiceTime)}! Session saved.`,
     });
   };
 
