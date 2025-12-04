@@ -85,7 +85,7 @@ export default function ParentSupport() {
   });
 
   const { data: yogaSessions } = useQuery({
-    queryKey: ['/api/children', selectedChild?.id, 'yoga-sessions'],
+    queryKey: ['/api/children', selectedChild?.id, 'yoga-pose-sessions'],
     enabled: isAuthenticated && !!selectedChild?.id,
   });
 
