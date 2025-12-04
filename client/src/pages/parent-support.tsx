@@ -99,6 +99,11 @@ export default function ParentSupport() {
     enabled: isAuthenticated && !!selectedChild?.id,
   });
 
+  const { data: roboticsProgress } = useQuery({
+    queryKey: ['/api/children', selectedChild?.id, 'robotics-progress'],
+    enabled: isAuthenticated && !!selectedChild?.id,
+  });
+
   useEffect(() => {
     if (children && children.length > 0 && !selectedChildId) {
       const savedChildId = localStorage.getItem('selectedChildId');
@@ -173,6 +178,7 @@ export default function ParentSupport() {
   const completedAssessments = assessmentResults?.length || 0;
   const yogaSessionsCount = Array.isArray(yogaSessions) ? yogaSessions.length : 0;
   const gameScoresCount = Array.isArray(gameScores) ? gameScores.length : 0;
+  const roboticsModulesCount = Array.isArray(roboticsProgress) ? roboticsProgress.filter((p: any) => p.status === 'completed').length : 0;
 
   const quickActions = [
     { 
@@ -413,7 +419,7 @@ export default function ParentSupport() {
                     </div>
 
                     {selectedChild?.id === child.id && (
-                      <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t">
                         <div className="text-center">
                           <div className="text-2xl font-bold text-purple-600">{completedAssessments}</div>
                           <div className="text-xs text-gray-500">Assessments</div>
@@ -425,6 +431,10 @@ export default function ParentSupport() {
                         <div className="text-center">
                           <div className="text-2xl font-bold text-pink-600">{gameScoresCount}</div>
                           <div className="text-xs text-gray-500">Games Played</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-blue-600">{roboticsModulesCount}</div>
+                          <div className="text-xs text-gray-500">Robotics Modules</div>
                         </div>
                       </div>
                     )}
@@ -438,7 +448,7 @@ export default function ParentSupport() {
         {selectedChild && (
           <>
             {/* Quick Stats Overview */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
               <Card className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -461,17 +471,6 @@ export default function ParentSupport() {
                   </div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-orange-100 text-sm">Nutrition</p>
-                      <p className="text-3xl font-bold">{nutritionPlan ? 'Active' : 'Setup'}</p>
-                    </div>
-                    <Utensils className="h-10 w-10 text-orange-200" />
-                  </div>
-                </CardContent>
-              </Card>
               <Card className="bg-gradient-to-br from-pink-500 to-rose-600 text-white">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -480,6 +479,28 @@ export default function ParentSupport() {
                       <p className="text-3xl font-bold">{gameScoresCount}</p>
                     </div>
                     <Gamepad2 className="h-10 w-10 text-pink-200" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-blue-500 to-cyan-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-100 text-sm">Robotics</p>
+                      <p className="text-3xl font-bold">{roboticsModulesCount}</p>
+                    </div>
+                    <Bot className="h-10 w-10 text-blue-200" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-orange-100 text-sm">Nutrition</p>
+                      <p className="text-3xl font-bold">{nutritionPlan ? 'Active' : 'Setup'}</p>
+                    </div>
+                    <Utensils className="h-10 w-10 text-orange-200" />
                   </div>
                 </CardContent>
               </Card>
@@ -611,6 +632,13 @@ export default function ParentSupport() {
                     </div>
                     <div>
                       <div className="flex justify-between mb-1">
+                        <span className="text-sm font-medium text-gray-700">Robotics Modules</span>
+                        <span className="text-sm text-gray-500">{roboticsModulesCount}/7</span>
+                      </div>
+                      <Progress value={(roboticsModulesCount / 7) * 100} className="h-2" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between mb-1">
                         <span className="text-sm font-medium text-gray-700">Nutrition Plan</span>
                         <span className="text-sm text-gray-500">{nutritionPlan ? 'Active' : 'Not Set'}</span>
                       </div>
@@ -624,7 +652,7 @@ export default function ParentSupport() {
                       <div>
                         <p className="font-semibold text-gray-800">Overall Progress</p>
                         <p className="text-sm text-gray-600">
-                          {Math.round(((completedAssessments * 20) + (yogaSessionsCount * 5) + (gameScoresCount * 2) + (nutritionPlan ? 20 : 0)) / 100 * 100)}% development activities completed
+                          {Math.round(((completedAssessments * 20) + (yogaSessionsCount * 5) + (gameScoresCount * 2) + (roboticsModulesCount * 10) + (nutritionPlan ? 20 : 0)) / 120 * 100)}% development activities completed
                         </p>
                       </div>
                     </div>
@@ -634,7 +662,7 @@ export default function ParentSupport() {
             </div>
 
             {/* Activity Sections */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Upcoming Yoga Sessions */}
               <Card>
                 <CardHeader className="pb-3">
@@ -649,7 +677,7 @@ export default function ParentSupport() {
                       <Clock className="h-5 w-5 text-green-600" />
                       <div>
                         <p className="font-medium text-gray-800">21 Poses Available</p>
-                        <p className="text-xs text-gray-500">Age-appropriate recommendations</p>
+                        <p className="text-xs text-gray-500">{yogaSessionsCount} sessions completed</p>
                       </div>
                     </div>
                     <p className="text-sm text-gray-600">
@@ -660,6 +688,36 @@ export default function ParentSupport() {
                       onClick={() => navigate('/yoga')}
                     >
                       Start Yoga Session
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Robotics Learning */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Bot className="h-5 w-5 text-blue-600" />
+                    Robotics Learning
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                      <Target className="h-5 w-5 text-blue-600" />
+                      <div>
+                        <p className="font-medium text-gray-800">7 Modules Available</p>
+                        <p className="text-xs text-gray-500">{roboticsModulesCount} modules completed</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      Learn about robots, sensors, coding basics, and real-world applications through fun interactive modules.
+                    </p>
+                    <Button 
+                      className="w-full bg-gradient-to-r from-blue-500 to-cyan-600"
+                      onClick={() => navigate('/robotics')}
+                    >
+                      Start Learning
                     </Button>
                   </div>
                 </CardContent>
